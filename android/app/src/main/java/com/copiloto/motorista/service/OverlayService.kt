@@ -37,7 +37,7 @@ class OverlayService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val autoHideHandler = Handler(Looper.getMainLooper())
-    private val autoHideRunnable = Runnable { dismissOverlay() }
+    private val autoHideRunnable = Runnable { userDismissed() }
     private lateinit var overlayController: OverlayController
     private var ttsSpeaker: TtsSpeaker? = null
 
@@ -51,7 +51,7 @@ class OverlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         overlayController = OverlayController(this).apply {
-            onDismiss = { dismissOverlay() }
+            onDismiss = { userDismissed() }
             onAccept = { handleAccept() }
         }
         ttsSpeaker = TtsSpeaker(this)
@@ -60,7 +60,10 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundSafely()
         when (intent?.action) {
-            ACTION_SHOW_OFFER -> intent.toOffer()?.let { handleOffer(it) }
+            ACTION_SHOW_OFFER -> {
+                val offer = intent.toOffer()
+                if (offer != null) handleOffer(offer) else stopEverything()
+            }
             ACTION_STOP -> stopEverything()
         }
         return START_STICKY
@@ -91,7 +94,19 @@ class OverlayService : Service() {
         lastRecordedId = withContext(Dispatchers.IO) {
             container.rideHistoryRepository.record(evaluation)
         }
+        // Note: the ride is NOT synced here. It is synced once the card is resolved
+        // (accepted/closed/auto-hidden) so the backend receives the final `accepted`
+        // value; the periodic SyncWorker backs up anything left unsynced.
+    }
+
+    private fun requestSync() {
         SyncScheduler.syncNow(this)
+    }
+
+    /** Close button or auto-hide: hide the card and back up the ride (accepted = false). */
+    private fun userDismissed() {
+        dismissOverlay()
+        requestSync()
     }
 
     /**
@@ -107,6 +122,8 @@ class OverlayService : Service() {
                 val repo = container.rideHistoryRepository
                 val before = withContext(Dispatchers.IO) { repo.todayAcceptedProfit() }
                 withContext(Dispatchers.IO) { repo.setAccepted(id, true) }
+                // Sync after the accepted flag is committed so the backup reflects it.
+                requestSync()
                 val crossed = com.copiloto.motorista.engine.DailyGoal
                     .crossed(before, evaluation.netProfit, profile.dailyGoal)
                 if (crossed && profile.voiceEnabled) {
@@ -219,13 +236,19 @@ class OverlayService : Service() {
             }
 
         fun showOffer(context: Context, offer: RideOffer) {
-            context.startForegroundService(showOfferIntent(context, offer))
+            // Starting a foreground service from the background (e.g. from the
+            // AccessibilityService) is allowed because the app holds SYSTEM_ALERT_WINDOW,
+            // but guard against ForegroundServiceStartNotAllowedException if overlay
+            // permission is missing so a real ride never crashes the app.
+            runCatching { context.startForegroundService(showOfferIntent(context, offer)) }
         }
 
         fun stop(context: Context) {
-            context.startService(
-                Intent(context, OverlayService::class.java).apply { action = ACTION_STOP },
-            )
+            runCatching {
+                context.startService(
+                    Intent(context, OverlayService::class.java).apply { action = ACTION_STOP },
+                )
+            }
         }
     }
 }

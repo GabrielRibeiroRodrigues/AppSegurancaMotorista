@@ -10,6 +10,7 @@ import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.data.repository.toDto
 import com.copiloto.motorista.service.OverlayService
+import com.copiloto.motorista.sync.SyncScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -19,6 +20,11 @@ import kotlin.random.Random
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val container = (application as CopilotoApp).container
+
+    init {
+        // Back up any rides left unsynced (e.g. the app was closed before the card resolved).
+        SyncScheduler.syncNow(application)
+    }
 
     val profile: StateFlow<DriverProfile> = container.driverProfileRepository.profile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DriverProfile())

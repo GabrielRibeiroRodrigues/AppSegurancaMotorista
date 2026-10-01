@@ -226,15 +226,19 @@ class DashcamService : LifecycleService() {
             private set
 
         fun start(context: Context) {
-            context.startForegroundService(
-                Intent(context, DashcamService::class.java).apply { action = ACTION_START },
-            )
+            runCatching {
+                context.startForegroundService(
+                    Intent(context, DashcamService::class.java).apply { action = ACTION_START },
+                )
+            }
         }
 
         fun stop(context: Context) {
-            context.startService(
-                Intent(context, DashcamService::class.java).apply { action = ACTION_STOP },
-            )
+            runCatching {
+                context.startService(
+                    Intent(context, DashcamService::class.java).apply { action = ACTION_STOP },
+                )
+            }
         }
     }
 }
