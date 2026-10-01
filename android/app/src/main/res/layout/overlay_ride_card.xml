@@ -2,7 +2,7 @@
 <!-- Lightweight, draggable ride-recommendation card drawn over rideshare apps (Module C). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/overlay_root"
-    android:layout_width="260dp"
+    android:layout_width="320dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/overlay_card_bg"
@@ -29,10 +29,12 @@
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:text="—"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:letterSpacing="0.08" />
+            android:letterSpacing="0.06" />
 
         <TextView
             android:id="@+id/source_label"
@@ -89,6 +91,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="R$ 0,00"
+                android:maxLines="1"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -112,6 +115,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="R$ 0,00"
+                android:maxLines="1"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -131,6 +135,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="—"
+        android:maxLines="1"
+        android:ellipsize="end"
         android:textColor="#B3FFFFFF"
         android:textSize="12sp" />
 

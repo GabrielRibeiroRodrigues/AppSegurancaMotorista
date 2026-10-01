@@ -7,7 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.copiloto.motorista.CopilotoApp
 import com.copiloto.motorista.R
@@ -33,6 +35,8 @@ import kotlinx.coroutines.withContext
 class OverlayService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val autoHideHandler = Handler(Looper.getMainLooper())
+    private val autoHideRunnable = Runnable { dismissOverlay() }
     private lateinit var overlayController: OverlayController
     private var ttsSpeaker: TtsSpeaker? = null
 
@@ -67,6 +71,9 @@ class OverlayService : Service() {
     private fun present(evaluation: RideEvaluation, speak: Boolean) {
         overlayController.show(evaluation)
         if (speak) ttsSpeaker?.announce(evaluation)
+        // Auto-hide after a few seconds unless replaced by a newer offer or closed.
+        autoHideHandler.removeCallbacks(autoHideRunnable)
+        autoHideHandler.postDelayed(autoHideRunnable, AUTO_HIDE_MS)
     }
 
     private suspend fun persist(evaluation: RideEvaluation) {
@@ -77,6 +84,7 @@ class OverlayService : Service() {
     }
 
     private fun dismissOverlay() {
+        autoHideHandler.removeCallbacks(autoHideRunnable)
         overlayController.hide()
         ttsSpeaker?.stop()
     }
@@ -138,6 +146,7 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        autoHideHandler.removeCallbacks(autoHideRunnable)
         overlayController.hide()
         ttsSpeaker?.shutdown()
         ttsSpeaker = null
@@ -149,6 +158,7 @@ class OverlayService : Service() {
     companion object {
         const val CHANNEL_ID = "copiloto_overlay"
         private const val NOTIFICATION_ID = 42
+        private const val AUTO_HIDE_MS = 15_000L
 
         const val ACTION_SHOW_OFFER = "com.copiloto.motorista.SHOW_OFFER"
         const val ACTION_STOP = "com.copiloto.motorista.STOP_OVERLAY"
