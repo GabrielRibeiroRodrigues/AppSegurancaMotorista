@@ -92,8 +92,12 @@ class OverlayController(private val context: Context) {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
+        // Fix the card width here (not in XML): a view inflated with a null parent
+        // and added via WindowManager takes its size from these LayoutParams, so a
+        // width in the layout file is ignored and the content would wrap/clip.
+        val widthPx = (CARD_WIDTH_DP * context.resources.displayMetrics.density).toInt()
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            widthPx,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             // NOT_FOCUSABLE keeps keystrokes/touches flowing to the app underneath.
@@ -157,6 +161,7 @@ class OverlayController(private val context: Context) {
     }
 
     private companion object {
+        const val CARD_WIDTH_DP = 320
         const val TAP_SLOP = 12f
         const val GREEN = 0xFF22C55E.toInt()
         const val YELLOW = 0xFFF59E0B.toInt()
