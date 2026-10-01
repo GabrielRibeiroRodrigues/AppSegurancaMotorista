@@ -42,6 +42,7 @@ class RideHistory(models.Model):
         GREEN = "GREEN", "Verde"
         YELLOW = "YELLOW", "Amarela"
         RED = "RED", "Vermelha"
+        RISK_RED = "RISK_RED", "Área de risco"
 
     driver = models.ForeignKey(
         DriverProfile,

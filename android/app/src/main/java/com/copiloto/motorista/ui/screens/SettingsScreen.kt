@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,6 +58,9 @@ fun SettingsScreen(
     var targetHour by remember { mutableStateOf("") }
     var voice by remember { mutableStateOf(true) }
     var saved by remember { mutableStateOf(false) }
+
+    val blacklist by viewModel.blacklist.collectAsStateWithLifecycle()
+    var newKeyword by remember { mutableStateOf("") }
 
     // Populate the fields once the stored profile is loaded.
     LaunchedEffect(profile) {
@@ -141,6 +148,60 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
+        }
+
+        SectionTitle("Zonas de risco")
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Se o destino da corrida contiver uma destas palavras, o app marca a corrida como área de risco e avisa por voz — ignorando o cálculo de lucro.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = newKeyword,
+                        onValueChange = { newKeyword = it },
+                        label = { Text("Palavra-chave (ex: Complexo)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(
+                        onClick = {
+                            val keyword = newKeyword.trim()
+                            if (keyword.isNotEmpty()) {
+                                viewModel.addKeyword(keyword)
+                                newKeyword = ""
+                                onMessage("Zona de risco adicionada")
+                            }
+                        },
+                    ) {
+                        Text("Adicionar")
+                    }
+                }
+                if (blacklist.isEmpty()) {
+                    Text(
+                        "Nenhuma zona de risco cadastrada.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    blacklist.forEach { keyword ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(keyword, modifier = Modifier.weight(1f))
+                            IconButton(onClick = { viewModel.removeKeyword(keyword) }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Remover $keyword")
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         SectionTitle("Depuração do parser")

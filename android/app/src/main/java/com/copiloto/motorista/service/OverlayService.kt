@@ -62,7 +62,8 @@ class OverlayService : Service() {
     private fun handleOffer(offer: RideOffer) {
         scope.launch {
             val profile = container.driverProfileRepository.current()
-            val evaluation = RideCalculator.evaluate(offer, profile)
+            val blacklist = container.riskZoneRepository.current()
+            val evaluation = RideCalculator.evaluate(offer, profile, blacklist)
             present(evaluation, speak = profile.voiceEnabled)
             persist(evaluation)
         }

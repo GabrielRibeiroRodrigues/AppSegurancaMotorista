@@ -35,8 +35,12 @@ data class RideOffer(
         get() = grossPrice > 0.0 && distanceKm > 0.0 && timeMinutes > 0
 }
 
-/** Traffic-light recommendation for a ride. */
-enum class RideClassification { GREEN, YELLOW, RED }
+/**
+ * Traffic-light recommendation for a ride. [RISK_RED] is a hard safety override:
+ * the destination matched a risk-zone keyword, so the profitability math is
+ * ignored and the ride is flagged as a risk area.
+ */
+enum class RideClassification { GREEN, YELLOW, RED, RISK_RED }
 
 /**
  * Result of running a [RideOffer] through the Calculation Engine (Module B).

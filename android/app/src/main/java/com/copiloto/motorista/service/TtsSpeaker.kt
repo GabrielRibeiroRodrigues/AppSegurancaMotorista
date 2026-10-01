@@ -25,7 +25,12 @@ class TtsSpeaker(context: Context) {
 
     fun announce(evaluation: RideEvaluation) {
         if (!ready) return
-        tts.speak(buildPhrase(evaluation), TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
+        val phrase = if (evaluation.classification == RideClassification.RISK_RED) {
+            RISK_PHRASE
+        } else {
+            buildPhrase(evaluation)
+        }
+        tts.speak(phrase, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
     }
 
     fun stop() {
@@ -42,6 +47,7 @@ class TtsSpeaker(context: Context) {
             RideClassification.GREEN -> "verde"
             RideClassification.YELLOW -> "amarela"
             RideClassification.RED -> "vermelha"
+            RideClassification.RISK_RED -> "vermelha"
         }
         val price = evaluation.offer.grossPrice.roundToInt()
         val km = formatKm(evaluation.offer.distanceKm)
@@ -64,5 +70,6 @@ class TtsSpeaker(context: Context) {
     private companion object {
         val PT_BR: Locale = Locale("pt", "BR")
         const val UTTERANCE_ID = "ride_eval"
+        const val RISK_PHRASE = "Alerta: destino em área de risco"
     }
 }

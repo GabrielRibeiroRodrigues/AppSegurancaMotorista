@@ -19,8 +19,8 @@ class RideCalculatorTest {
         targetPerHour = 30.0,
     )
 
-    private fun offer(price: Double, km: Double, min: Int) =
-        RideOffer(RideSource.SIMULATOR, price, km, min)
+    private fun offer(price: Double, km: Double, min: Int, rawText: String? = null) =
+        RideOffer(RideSource.SIMULATOR, price, km, min, rawText = rawText)
 
     @Test
     fun `cost per km combines fuel and maintenance`() {
@@ -84,5 +84,46 @@ class RideCalculatorTest {
         val result = RideCalculator.evaluate(offer(30.0, 6.0, 12), expensive)
         assertTrue(result.netProfit < 0)
         assertEquals(RideClassification.RED, result.classification)
+    }
+
+    @Test
+    fun `blacklist keyword overrides a great ride to risk red`() {
+        // Numbers would be GREEN, but the destination text matches the blacklist.
+        val result = RideCalculator.evaluate(
+            offer(30.0, 6.0, 12, rawText = "Destino: Complexo do Alemão"),
+            profile,
+            blacklist = listOf("complexo"),
+        )
+        assertEquals(RideClassification.RISK_RED, result.classification)
+    }
+
+    @Test
+    fun `blacklist match is case insensitive`() {
+        val result = RideCalculator.evaluate(
+            offer(10.0, 5.0, 20, rawText = "Destino: VILA NOVA"),
+            profile,
+            blacklist = listOf("vila nova"),
+        )
+        assertEquals(RideClassification.RISK_RED, result.classification)
+    }
+
+    @Test
+    fun `no blacklist match keeps the normal classification`() {
+        val result = RideCalculator.evaluate(
+            offer(20.0, 6.0, 12, rawText = "Destino: Centro"),
+            profile,
+            blacklist = listOf("complexo"),
+        )
+        assertEquals(RideClassification.GREEN, result.classification)
+    }
+
+    @Test
+    fun `empty blacklist never flags risk`() {
+        val result = RideCalculator.evaluate(
+            offer(20.0, 6.0, 12, rawText = "Destino: Complexo"),
+            profile,
+            blacklist = emptyList(),
+        )
+        assertEquals(RideClassification.GREEN, result.classification)
     }
 }

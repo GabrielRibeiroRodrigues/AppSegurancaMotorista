@@ -20,6 +20,7 @@ object UiFormat {
         RideClassification.GREEN.name -> Color(0xFF22C55E)
         RideClassification.YELLOW.name -> Color(0xFFF59E0B)
         RideClassification.RED.name -> Color(0xFFEF4444)
+        RideClassification.RISK_RED.name -> Color(0xFFEF4444)
         else -> Color(0xFF9E9E9E)
     }
 
@@ -27,6 +28,7 @@ object UiFormat {
         RideClassification.GREEN.name -> "Aceitar"
         RideClassification.YELLOW.name -> "Avaliar"
         RideClassification.RED.name -> "Recusar"
+        RideClassification.RISK_RED.name -> "⚠ Risco"
         else -> "—"
     }
 }

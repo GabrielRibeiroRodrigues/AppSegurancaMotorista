@@ -20,8 +20,16 @@ object RideCalculator {
      *  - Gross R$/km   = Price / Distance
      *  - Gross R$/hour = (Price / Time in minutes) * 60
      *  - Net Profit    = Price - Total Cost
+     *
+     * Safety override (Funcionalidade 1): if the captured screen text matches any
+     * risk-zone [blacklist] keyword, the math is ignored and the ride is flagged
+     * [RideClassification.RISK_RED].
      */
-    fun evaluate(offer: RideOffer, profile: DriverProfile): RideEvaluation {
+    fun evaluate(
+        offer: RideOffer,
+        profile: DriverProfile,
+        blacklist: List<String> = emptyList(),
+    ): RideEvaluation {
         val distance = offer.distanceKm.coerceAtLeast(0.0)
         val minutes = offer.timeMinutes.coerceAtLeast(0)
 
@@ -31,6 +39,12 @@ object RideCalculator {
         val grossPerHour = if (minutes > 0) (offer.grossPrice / minutes) * 60.0 else 0.0
         val netProfit = offer.grossPrice - totalCost
 
+        val classification = if (matchesRiskZone(offer, blacklist)) {
+            RideClassification.RISK_RED
+        } else {
+            classify(grossPerKm, grossPerHour, netProfit, profile)
+        }
+
         return RideEvaluation(
             offer = offer,
             costPerKm = costPerKm,
@@ -38,8 +52,20 @@ object RideCalculator {
             grossPerKm = grossPerKm,
             grossPerHour = grossPerHour,
             netProfit = netProfit,
-            classification = classify(grossPerKm, grossPerHour, netProfit, profile),
+            classification = classification,
         )
+    }
+
+    /** True when the offer's captured text contains any blacklist keyword (case-insensitive). */
+    fun matchesRiskZone(offer: RideOffer, blacklist: List<String>): Boolean {
+        if (blacklist.isEmpty()) return false
+        val text = listOfNotNull(offer.rawText, offer.pickup, offer.dropoff)
+            .joinToString(" ")
+            .lowercase()
+        if (text.isBlank()) return false
+        return blacklist.any { keyword ->
+            keyword.isNotBlank() && text.contains(keyword.trim().lowercase())
+        }
     }
 
     /**

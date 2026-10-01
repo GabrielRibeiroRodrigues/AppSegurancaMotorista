@@ -152,12 +152,14 @@ class OverlayController(private val context: Context) {
         RideClassification.GREEN -> GREEN
         RideClassification.YELLOW -> YELLOW
         RideClassification.RED -> RED
+        RideClassification.RISK_RED -> RED
     }
 
     private fun classificationLabel(classification: RideClassification): String = when (classification) {
         RideClassification.GREEN -> "ACEITAR"
         RideClassification.YELLOW -> "AVALIAR"
         RideClassification.RED -> "RECUSAR"
+        RideClassification.RISK_RED -> "⚠ ÁREA DE RISCO"
     }
 
     private companion object {

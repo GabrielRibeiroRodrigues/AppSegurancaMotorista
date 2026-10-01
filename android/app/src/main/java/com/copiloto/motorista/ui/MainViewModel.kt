@@ -35,6 +35,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { container.onboardingStore.markDone() }
     }
 
+    val blacklist: StateFlow<List<String>> = container.riskZoneRepository.keywords
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun addKeyword(keyword: String) {
+        viewModelScope.launch { container.riskZoneRepository.add(keyword) }
+    }
+
+    fun removeKeyword(keyword: String) {
+        viewModelScope.launch { container.riskZoneRepository.remove(keyword) }
+    }
+
     fun saveProfile(profile: DriverProfile) {
         viewModelScope.launch {
             container.driverProfileRepository.save(profile)
@@ -58,11 +69,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Spread prices so the simulator produces green, yellow and red outcomes.
         val perKm = Random.nextDouble(0.9, 2.6)
         val price = (distance * perKm).let { (it * 100).toInt() / 100.0 }
+        val neighborhood = NEIGHBORHOODS.random()
         return RideOffer(
             source = source,
             grossPrice = price,
             distanceKm = (distance * 10).toInt() / 10.0,
             timeMinutes = minutes,
+            dropoff = neighborhood,
+            // Mimics the captured screen text so risk-zone keywords can match.
+            rawText = "Destino: $neighborhood",
+        )
+    }
+
+    private companion object {
+        val NEIGHBORHOODS = listOf(
+            "Centro", "Jardim das Flores", "Vila Nova", "Parque Industrial",
+            "Bairro Alto", "Morro Verde", "Residencial Sol",
         )
     }
 }
