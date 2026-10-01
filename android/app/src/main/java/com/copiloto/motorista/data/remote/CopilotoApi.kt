@@ -1,33 +1,43 @@
 package com.copiloto.motorista.data.remote
 
 import com.copiloto.motorista.data.remote.dto.DriverProfileDto
+import com.copiloto.motorista.data.remote.dto.LoginRequest
+import com.copiloto.motorista.data.remote.dto.RefreshRequest
+import com.copiloto.motorista.data.remote.dto.RefreshResponse
+import com.copiloto.motorista.data.remote.dto.RegisterRequest
 import com.copiloto.motorista.data.remote.dto.RideHistoryDto
+import com.copiloto.motorista.data.remote.dto.TokenPair
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
+import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.PUT
 
 /**
- * Django REST endpoints (Module F). A device id header identifies the driver
- * without requiring a login for the MVP.
+ * Django REST endpoints. Auth endpoints carry a `No-Auth` marker so the
+ * [AuthInterceptor] does not attach a bearer token to them; every other endpoint
+ * is authenticated with the JWT access token (Module 3).
  */
 interface CopilotoApi {
 
+    @Headers("No-Auth: true")
+    @POST("api/auth/register/")
+    suspend fun register(@Body body: RegisterRequest): TokenPair
+
+    @Headers("No-Auth: true")
+    @POST("api/auth/login/")
+    suspend fun login(@Body body: LoginRequest): TokenPair
+
+    @Headers("No-Auth: true")
+    @POST("api/auth/refresh/")
+    suspend fun refresh(@Body body: RefreshRequest): RefreshResponse
+
     @POST("api/rides/")
-    suspend fun createRide(
-        @Header("X-Device-Id") deviceId: String,
-        @Body ride: RideHistoryDto,
-    ): RideHistoryDto
+    suspend fun createRide(@Body ride: RideHistoryDto): RideHistoryDto
 
     @GET("api/profile/")
-    suspend fun getProfile(
-        @Header("X-Device-Id") deviceId: String,
-    ): DriverProfileDto
+    suspend fun getProfile(): DriverProfileDto
 
     @PUT("api/profile/")
-    suspend fun updateProfile(
-        @Header("X-Device-Id") deviceId: String,
-        @Body profile: DriverProfileDto,
-    ): DriverProfileDto
+    suspend fun updateProfile(@Body profile: DriverProfileDto): DriverProfileDto
 }

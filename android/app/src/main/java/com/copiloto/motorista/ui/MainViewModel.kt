@@ -30,11 +30,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveProfile(profile: DriverProfile) {
         viewModelScope.launch {
             container.driverProfileRepository.save(profile)
-            // Mirror config to the backend opportunistically; ignore offline failures.
-            runCatching {
-                val deviceId = container.driverProfileRepository.deviceId()
-                container.api.updateProfile(deviceId, profile.toDto())
-            }
+            // Mirror config to the backend opportunistically; ignore offline/auth failures.
+            runCatching { container.api.updateProfile(profile.toDto()) }
         }
     }
 

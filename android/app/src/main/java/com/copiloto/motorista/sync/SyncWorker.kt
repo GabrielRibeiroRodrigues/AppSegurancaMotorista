@@ -16,9 +16,11 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         val container = (applicationContext as CopilotoApp).container
+        // Only attempt a sync when the driver is signed in; otherwise retry later.
+        val loggedIn = container.tokenStore.refreshToken() != null
+        if (!loggedIn) return Result.success()
         return try {
-            val deviceId = container.driverProfileRepository.deviceId()
-            container.rideHistoryRepository.syncPending(deviceId)
+            container.rideHistoryRepository.syncPending()
             Result.success()
         } catch (e: Exception) {
             if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()

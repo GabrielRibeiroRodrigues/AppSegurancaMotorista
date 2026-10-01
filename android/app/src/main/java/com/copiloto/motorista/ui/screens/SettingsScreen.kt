@@ -36,7 +36,7 @@ import com.copiloto.motorista.ui.MainViewModel
 import com.copiloto.motorista.ui.UiFormat
 
 @Composable
-fun SettingsScreen(viewModel: MainViewModel) {
+fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
     val context = LocalContext.current
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     var dumpCount by remember { mutableStateOf(ParserDumpStore.count(context)) }
@@ -171,6 +171,14 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     Text("Limpar dumps")
                 }
             }
+        }
+
+        SectionTitle("Conta")
+        OutlinedButton(
+            onClick = onLogout,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Sair da conta")
         }
     }
 }

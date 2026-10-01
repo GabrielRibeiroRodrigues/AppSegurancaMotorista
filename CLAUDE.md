@@ -27,7 +27,7 @@ Monorepo with two independent projects:
 - Local without Docker/Postgres: set `USE_SQLITE=True` (plus `DJANGO_SECRET_KEY`) to fall back to SQLite.
 - Checks: `USE_SQLITE=True python manage.py check`
 - Tests: `USE_SQLITE=True python manage.py test`
-- Single test: `USE_SQLITE=True python manage.py test api.tests.RideApiTests.test_create_ride_persists_and_links_driver`
+- Single test: `USE_SQLITE=True python manage.py test api.tests.RideApiTests.test_create_ride_links_to_authenticated_driver`
 
 ## Architecture
 
@@ -60,8 +60,24 @@ MainViewModel.simulateRide (Module G)─┘
 - **Driver config** → DataStore (`DriverProfileRepository`), not Room — it's a single small reactive record. A per-install `deviceId` (also in DataStore) scopes all backend data; there is no login in the MVP.
 - **Dependency wiring** is manual via `CopilotoContainer` (held by `CopilotoApp.container`), reachable from services, workers and `AndroidViewModel`s. No Hilt/Dagger.
 
-### Backend identity model
-The API has no auth; the client sends an `X-Device-Id` header. `views.resolve_device_id` turns it into a `DriverProfile` (`get_or_create`), and every `RideHistory` is scoped to that driver. `backend/api/models.py` mirrors the Android domain models; keep the two in sync when fields change.
+### Auth & identity model (JWT)
+The API uses **JWT** (`djangorestframework-simplejwt`). A `DriverProfile` is a `OneToOne` to Django's `User`; every `RideHistory` is scoped to `driver__user=request.user`, so data follows the driver across devices. `backend/api/models.py` mirrors the Android domain models; keep the two in sync when fields change.
+
+On Android, `TokenStore` (DataStore) holds the access/refresh tokens. `AuthInterceptor` attaches `Authorization: Bearer <access>` to every request except those marked `No-Auth` (login/register/refresh); `TokenAuthenticator` refreshes the access token once on a 401 and clears the tokens (→ login screen) if the refresh fails. `MainActivity` shows `AuthScreen` until `TokenStore.isLoggedIn` is true.
+
+### API routes
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `POST` | `/api/auth/register/` | não | `{username, email?, password}` → `{access, refresh, user}` |
+| `POST` | `/api/auth/login/` | não | `{username, password}` → `{access, refresh}` |
+| `POST` | `/api/auth/refresh/` | não | `{refresh}` → `{access}` |
+| `GET` / `POST` | `/api/rides/` | sim | lista / cria o histórico de corridas do usuário |
+| `GET` / `PUT` | `/api/profile/` | sim | lê / atualiza a configuração do motorista |
+
+### How to log in (app)
+1. Suba o backend (`cd backend && docker compose up --build`).
+2. No app, ajuste `API_BASE_URL` em `android/app/build.gradle.kts` se não for emulador (o padrão `http://10.0.2.2:8000/` é o host local visto do emulador).
+3. Abra o app → tela de login. Toque em **"Cadastre-se"**, crie usuário/senha (a senha passa pelos validadores do Django) e o app guarda os tokens e entra. Nas próximas vezes, use **Entrar**. Para trocar de conta, use **Ajustes → Sair da conta**.
 
 ## Conventions
 - Portuguese (pt-BR) is the user-facing language (UI strings, TTS phrases, currency `R$`). Code identifiers and comments are English.

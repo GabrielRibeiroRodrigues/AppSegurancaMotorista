@@ -1,13 +1,19 @@
+from django.contrib.auth.models import User
 from django.db import models
 
 
 class DriverProfile(models.Model):
     """Driver configuration mirrored from the mobile app (Module F).
 
-    Identified by a per-install device id so the MVP needs no login.
+    Linked to the authenticated Django user so data follows the driver across
+    devices (Module 3 — JWT auth).
     """
 
-    device_id = models.CharField(max_length=64, unique=True, db_index=True)
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="driver_profile",
+    )
     fuel_price_per_liter = models.DecimalField(max_digits=8, decimal_places=2, default=6.00)
     km_per_liter = models.DecimalField(max_digits=6, decimal_places=2, default=12.00)
     maintenance_cost_per_km = models.DecimalField(max_digits=6, decimal_places=2, default=0.25)
@@ -18,7 +24,7 @@ class DriverProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
-        return f"DriverProfile({self.device_id})"
+        return f"DriverProfile({self.user.username})"
 
 
 class RideHistory(models.Model):

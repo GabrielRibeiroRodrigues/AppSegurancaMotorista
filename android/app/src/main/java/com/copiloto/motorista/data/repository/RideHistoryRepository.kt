@@ -28,14 +28,14 @@ class RideHistoryRepository(
         dao.updateAccepted(localId, accepted)
 
     /**
-     * Pushes every unsynced row to the backend. Returns the number of rows synced.
-     * Throws on network/server failure so WorkManager can retry.
+     * Pushes every unsynced row to the backend (authenticated via JWT). Returns the
+     * number of rows synced. Throws on network/server failure so WorkManager can retry.
      */
-    suspend fun syncPending(deviceId: String): Int {
+    suspend fun syncPending(): Int {
         val pending = dao.getUnsynced()
         var count = 0
         for (row in pending) {
-            val response = api.createRide(deviceId, row.toDto())
+            val response = api.createRide(row.toDto())
             dao.markSynced(row.id, response.id)
             count++
         }

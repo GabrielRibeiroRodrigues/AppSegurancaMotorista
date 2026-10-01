@@ -4,7 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
@@ -18,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -25,6 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.copiloto.motorista.ui.screens.AuthScreen
 import com.copiloto.motorista.ui.screens.HistoryScreen
 import com.copiloto.motorista.ui.screens.HomeScreen
 import com.copiloto.motorista.ui.screens.SettingsScreen
@@ -36,9 +42,23 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CopilotoTheme {
-                CopilotoApp()
+                CopilotoRoot()
             }
         }
+    }
+}
+
+@Composable
+private fun CopilotoRoot() {
+    val authViewModel: AuthViewModel = viewModel()
+    val loggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
+
+    when (loggedIn) {
+        null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        false -> AuthScreen(authViewModel)
+        true -> CopilotoApp(onLogout = { authViewModel.logout() })
     }
 }
 
@@ -49,7 +69,7 @@ private enum class Destination(val route: String, val label: String, val icon: I
 }
 
 @Composable
-private fun CopilotoApp() {
+private fun CopilotoApp(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val viewModel: MainViewModel = viewModel()
 
@@ -85,7 +105,7 @@ private fun CopilotoApp() {
         ) {
             composable(Destination.HOME.route) { HomeScreen(viewModel) }
             composable(Destination.HISTORY.route) { HistoryScreen(viewModel) }
-            composable(Destination.SETTINGS.route) { SettingsScreen(viewModel) }
+            composable(Destination.SETTINGS.route) { SettingsScreen(viewModel, onLogout = onLogout) }
         }
     }
 }

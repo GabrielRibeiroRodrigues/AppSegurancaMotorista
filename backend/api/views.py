@@ -1,34 +1,48 @@
-from rest_framework import generics, status
-from rest_framework.exceptions import ValidationError
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import DriverProfile, RideHistory
-from .serializers import DriverProfileSerializer, RideHistorySerializer
+from .serializers import (
+    DriverProfileSerializer,
+    RegisterSerializer,
+    RideHistorySerializer,
+)
 
-DEVICE_HEADER = "X-Device-Id"
+
+def tokens_for(user) -> dict:
+    """Builds an access/refresh pair for a user (Module 3 — JWT auth)."""
+    refresh = RefreshToken.for_user(user)
+    return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
-def resolve_device_id(request) -> str:
-    """Reads the per-install device id, rejecting requests without one."""
-    device_id = request.headers.get(DEVICE_HEADER)
-    if not device_id:
-        raise ValidationError({"detail": f"Missing {DEVICE_HEADER} header."})
-    return device_id
+class RegisterView(APIView):
+    """Creates a driver account and returns a JWT pair."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            {"user": {"username": user.username, "email": user.email}, **tokens_for(user)},
+            status=201,
+        )
 
 
 class RideListCreateView(generics.ListCreateAPIView):
-    """GET lists this device's rides; POST backs up a captured ride (Module F)."""
+    """GET lists the driver's rides; POST backs up a captured ride (Module F)."""
 
     serializer_class = RideHistorySerializer
 
     def get_queryset(self):
-        device_id = resolve_device_id(self.request)
-        return RideHistory.objects.filter(driver__device_id=device_id)
+        return RideHistory.objects.filter(driver__user=self.request.user)
 
     def perform_create(self, serializer):
-        device_id = resolve_device_id(self.request)
-        driver, _ = DriverProfile.objects.get_or_create(device_id=device_id)
+        driver, _ = DriverProfile.objects.get_or_create(user=self.request.user)
         serializer.save(driver=driver)
 
 
@@ -36,14 +50,12 @@ class DriverProfileView(APIView):
     """GET returns (creating defaults if needed) and PUT updates the config."""
 
     def get(self, request):
-        device_id = resolve_device_id(request)
-        profile, _ = DriverProfile.objects.get_or_create(device_id=device_id)
+        profile, _ = DriverProfile.objects.get_or_create(user=request.user)
         return Response(DriverProfileSerializer(profile).data)
 
     def put(self, request):
-        device_id = resolve_device_id(request)
-        profile, _ = DriverProfile.objects.get_or_create(device_id=device_id)
+        profile, _ = DriverProfile.objects.get_or_create(user=request.user)
         serializer = DriverProfileSerializer(profile, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
