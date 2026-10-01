@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  android-tests:
+    name: Android (testes unitários)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configura JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Configura Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instala componentes do SDK
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: Roda os testes unitários
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+  backend-tests:
+    name: Backend (testes Django)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configura Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instala dependências
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Roda os testes
+        working-directory: backend
+        env:
+          USE_SQLITE: "True"
+          DJANGO_SECRET_KEY: "ci-secret-key-not-for-production-32chars"
+          DEBUG: "True"
+        run: python manage.py test
