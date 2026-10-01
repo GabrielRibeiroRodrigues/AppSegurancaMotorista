@@ -13,6 +13,7 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.copiloto.motorista.CopilotoApp
 import com.copiloto.motorista.R
+import com.copiloto.motorista.data.model.DriverProfile
 import com.copiloto.motorista.data.model.RideEvaluation
 import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
@@ -40,12 +41,18 @@ class OverlayService : Service() {
     private lateinit var overlayController: OverlayController
     private var ttsSpeaker: TtsSpeaker? = null
 
+    // Last presented ride, so the ACEITAR button can mark it accepted (Funcionalidade 2).
+    private var lastRecordedId: Long = -1
+    private var lastEvaluation: RideEvaluation? = null
+    private var lastProfile: DriverProfile? = null
+
     private val container get() = (application as CopilotoApp).container
 
     override fun onCreate() {
         super.onCreate()
         overlayController = OverlayController(this).apply {
             onDismiss = { dismissOverlay() }
+            onAccept = { handleAccept() }
         }
         ttsSpeaker = TtsSpeaker(this)
     }
@@ -64,8 +71,10 @@ class OverlayService : Service() {
             val profile = container.driverProfileRepository.current()
             val blacklist = container.riskZoneRepository.current()
             val evaluation = RideCalculator.evaluate(offer, profile, blacklist)
-            present(evaluation, speak = profile.voiceEnabled)
+            lastProfile = profile
+            // Persist first so the record id is ready before the ACEITAR button can be tapped.
             persist(evaluation)
+            present(evaluation, speak = profile.voiceEnabled)
         }
     }
 
@@ -78,10 +87,34 @@ class OverlayService : Service() {
     }
 
     private suspend fun persist(evaluation: RideEvaluation) {
-        withContext(Dispatchers.IO) {
+        lastEvaluation = evaluation
+        lastRecordedId = withContext(Dispatchers.IO) {
             container.rideHistoryRepository.record(evaluation)
         }
         SyncScheduler.syncNow(this)
+    }
+
+    /**
+     * ACEITAR tapped: marks the ride accepted and, if this accept makes today's
+     * accepted earnings cross the daily goal, speaks the celebratory message.
+     */
+    private fun handleAccept() {
+        val id = lastRecordedId
+        val evaluation = lastEvaluation
+        val profile = lastProfile
+        if (id > 0 && evaluation != null && profile != null) {
+            scope.launch {
+                val repo = container.rideHistoryRepository
+                val before = withContext(Dispatchers.IO) { repo.todayAcceptedProfit() }
+                withContext(Dispatchers.IO) { repo.setAccepted(id, true) }
+                val crossed = com.copiloto.motorista.engine.DailyGoal
+                    .crossed(before, evaluation.netProfit, profile.dailyGoal)
+                if (crossed && profile.voiceEnabled) {
+                    ttsSpeaker?.announceGoalReached()
+                }
+            }
+        }
+        dismissOverlay()
     }
 
     private fun dismissOverlay() {

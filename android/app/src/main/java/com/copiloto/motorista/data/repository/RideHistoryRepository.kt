@@ -27,6 +27,14 @@ class RideHistoryRepository(
     suspend fun setAccepted(localId: Long, accepted: Boolean) =
         dao.updateAccepted(localId, accepted)
 
+    /** Live sum of net profit from rides the driver accepted today (daily-goal tracker). */
+    fun observeTodayAcceptedProfit(): Flow<Double> =
+        dao.observeAcceptedProfitSince(startOfToday())
+
+    /** One-shot sum of today's accepted net profit (used when crossing the goal). */
+    suspend fun todayAcceptedProfit(): Double =
+        dao.getAcceptedProfitSince(startOfToday())
+
     /**
      * Pushes every unsynced row to the backend (authenticated via JWT). Returns the
      * number of rows synced. Throws on network/server failure so WorkManager can retry.

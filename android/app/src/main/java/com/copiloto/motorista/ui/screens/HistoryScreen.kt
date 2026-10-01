@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,27 +35,75 @@ import java.util.Calendar
 @Composable
 fun HistoryScreen(viewModel: MainViewModel) {
     val rides by viewModel.history.collectAsStateWithLifecycle()
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+    val acceptedToday by viewModel.todayAcceptedProfit.collectAsStateWithLifecycle()
 
-    if (rides.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                "Nenhuma corrida registrada ainda.\nUse o simulador para gerar uma.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    Column(modifier = Modifier.fillMaxSize()) {
+        GoalProgress(
+            accepted = acceptedToday,
+            goal = profile.dailyGoal,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+        )
+
+        if (rides.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "Nenhuma corrida registrada ainda.\nUse o simulador para gerar uma.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item { TodaySummary(rides) }
+                items(rides, key = { it.id }) { ride -> RideRow(ride) }
+            }
         }
-        return
     }
+}
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item { TodaySummary(rides) }
-        items(rides, key = { it.id }) { ride -> RideRow(ride) }
+@Composable
+private fun GoalProgress(accepted: Double, goal: Double, modifier: Modifier = Modifier) {
+    val fraction = com.copiloto.motorista.engine.DailyGoal.progressFraction(accepted, goal)
+    val percent = (fraction * 100).toInt()
+    val reached = goal > 0 && accepted >= goal
+
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Meta diária", fontWeight = FontWeight.Bold)
+                Text(
+                    "${UiFormat.money(accepted)} / ${UiFormat.money(goal)} · $percent%",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (reached) Color(0xFF22C55E) else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { fraction },
+                modifier = Modifier.fillMaxWidth(),
+                color = if (reached) Color(0xFF22C55E) else MaterialTheme.colorScheme.primary,
+            )
+            if (reached) {
+                Text(
+                    "Meta atingida! 🎉",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF22C55E),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
     }
 }
 

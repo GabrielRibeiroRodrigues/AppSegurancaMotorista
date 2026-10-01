@@ -35,6 +35,7 @@ class DriverProfileSerializer(serializers.ModelSerializer):
             "target_per_km",
             "minimum_per_km",
             "target_per_hour",
+            "daily_goal",
             "voice_enabled",
         ]
 

@@ -35,6 +35,9 @@ class OverlayController(private val context: Context) {
     /** Callback invoked when the user taps the card's close button. */
     var onDismiss: (() -> Unit)? = null
 
+    /** Callback invoked when the user taps the card's ACEITAR button. */
+    var onAccept: (() -> Unit)? = null
+
     val isShowing: Boolean get() = overlayView != null
 
     @SuppressLint("ClickableViewAccessibility", "InflateParams")
@@ -45,6 +48,9 @@ class OverlayController(private val context: Context) {
             makeDraggable(view, params)
             view.findViewById<TextView>(R.id.close_button).setOnClickListener {
                 onDismiss?.invoke()
+            }
+            view.findViewById<TextView>(R.id.accept_button).setOnClickListener {
+                onAccept?.invoke()
             }
             windowManager.addView(view, params)
             overlayView = view

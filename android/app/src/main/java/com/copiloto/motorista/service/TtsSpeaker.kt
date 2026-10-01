@@ -33,6 +33,12 @@ class TtsSpeaker(context: Context) {
         tts.speak(phrase, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
     }
 
+    /** Spoken when the driver's accepted earnings cross the daily goal (Funcionalidade 2). */
+    fun announceGoalReached() {
+        if (!ready) return
+        tts.speak(GOAL_PHRASE, TextToSpeech.QUEUE_FLUSH, null, GOAL_UTTERANCE_ID)
+    }
+
     fun stop() {
         if (ready) tts.stop()
     }
@@ -70,6 +76,8 @@ class TtsSpeaker(context: Context) {
     private companion object {
         val PT_BR: Locale = Locale("pt", "BR")
         const val UTTERANCE_ID = "ride_eval"
+        const val GOAL_UTTERANCE_ID = "goal_reached"
         const val RISK_PHRASE = "Alerta: destino em área de risco"
+        const val GOAL_PHRASE = "Meta atingida! Hora de ir para casa descansar."
     }
 }

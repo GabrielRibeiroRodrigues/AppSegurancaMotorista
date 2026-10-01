@@ -11,6 +11,7 @@ package com.copiloto.motorista.data.model
  * @param minimumPerKm R$/km below which a ride is RED; between this and target it is YELLOW.
  * @param targetPerHour minimum acceptable R$/hour; a ride that would be GREEN by R$/km but
  *   earns less than this per hour is downgraded to YELLOW (never recommended as GREEN).
+ * @param dailyGoal the driver's daily net-earnings target (R$), tracked on the history screen.
  * @param voiceEnabled whether the Text-To-Speech announcement is spoken (Module D).
  */
 data class DriverProfile(
@@ -20,6 +21,7 @@ data class DriverProfile(
     val targetPerKm: Double = 1.80,
     val minimumPerKm: Double = 1.20,
     val targetPerHour: Double = 30.0,
+    val dailyGoal: Double = 300.0,
     val voiceEnabled: Boolean = true,
 ) {
     /** Fuel cost per km derived from price and consumption. */

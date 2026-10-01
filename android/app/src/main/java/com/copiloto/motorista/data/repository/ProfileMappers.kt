@@ -10,6 +10,7 @@ fun DriverProfile.toDto() = DriverProfileDto(
     targetPerKm = targetPerKm.round2(),
     minimumPerKm = minimumPerKm.round2(),
     targetPerHour = targetPerHour.round2(),
+    dailyGoal = dailyGoal.round2(),
     voiceEnabled = voiceEnabled,
 )
 
@@ -20,5 +21,6 @@ fun DriverProfileDto.toDomain() = DriverProfile(
     targetPerKm = targetPerKm,
     minimumPerKm = minimumPerKm,
     targetPerHour = targetPerHour,
+    dailyGoal = dailyGoal,
     voiceEnabled = voiceEnabled,
 )

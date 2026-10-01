@@ -27,6 +27,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         container.rideHistoryRepository.observeRecent(50)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Sum of net profit from rides accepted today (daily-goal tracker). */
+    val todayAcceptedProfit: StateFlow<Double> =
+        container.rideHistoryRepository.observeTodayAcceptedProfit()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0.0)
+
     /** null while loading; false shows the onboarding, true shows the main app. */
     val onboardingDone: StateFlow<Boolean?> = container.onboardingStore.isDone
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

@@ -10,5 +10,6 @@ data class DriverProfileDto(
     @Json(name = "target_per_km") val targetPerKm: Double,
     @Json(name = "minimum_per_km") val minimumPerKm: Double,
     @Json(name = "target_per_hour") val targetPerHour: Double,
+    @Json(name = "daily_goal") val dailyGoal: Double,
     @Json(name = "voice_enabled") val voiceEnabled: Boolean,
 )

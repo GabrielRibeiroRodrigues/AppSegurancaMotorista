@@ -20,6 +20,7 @@ class DriverProfile(models.Model):
     target_per_km = models.DecimalField(max_digits=6, decimal_places=2, default=1.80)
     minimum_per_km = models.DecimalField(max_digits=6, decimal_places=2, default=1.20)
     target_per_hour = models.DecimalField(max_digits=7, decimal_places=2, default=30.00)
+    daily_goal = models.DecimalField(max_digits=10, decimal_places=2, default=300.00)
     voice_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

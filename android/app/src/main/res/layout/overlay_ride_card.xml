@@ -140,4 +140,18 @@
         android:textColor="#B3FFFFFF"
         android:textSize="12sp" />
 
+    <TextView
+        android:id="@+id/accept_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/overlay_accept_bg"
+        android:gravity="center"
+        android:paddingVertical="10dp"
+        android:text="ACEITAR"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05" />
+
 </LinearLayout>

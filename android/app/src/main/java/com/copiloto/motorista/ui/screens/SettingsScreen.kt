@@ -56,6 +56,7 @@ fun SettingsScreen(
     var target by remember { mutableStateOf("") }
     var minimum by remember { mutableStateOf("") }
     var targetHour by remember { mutableStateOf("") }
+    var dailyGoal by remember { mutableStateOf("") }
     var voice by remember { mutableStateOf(true) }
     var saved by remember { mutableStateOf(false) }
 
@@ -70,6 +71,7 @@ fun SettingsScreen(
         target = profile.targetPerKm.toString()
         minimum = profile.minimumPerKm.toString()
         targetHour = profile.targetPerHour.toString()
+        dailyGoal = profile.dailyGoal.toString()
         voice = profile.voiceEnabled
     }
 
@@ -111,6 +113,9 @@ fun SettingsScreen(
         SectionTitle("Meta de ganho por hora (R$/h)")
         NumberField("Mínimo p/ verde — abaixo disso vira amarela", targetHour) { targetHour = it; saved = false }
 
+        SectionTitle("Meta diária (R$)")
+        NumberField("Quanto você quer ganhar por dia", dailyGoal) { dailyGoal = it; saved = false }
+
         SectionTitle("Voz")
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -131,6 +136,7 @@ fun SettingsScreen(
                         targetPerKm = target.toDoubleFlexible(),
                         minimumPerKm = minimum.toDoubleFlexible(),
                         targetPerHour = targetHour.toDoubleFlexible(),
+                        dailyGoal = dailyGoal.toDoubleFlexible(),
                         voiceEnabled = voice,
                     ),
                 )

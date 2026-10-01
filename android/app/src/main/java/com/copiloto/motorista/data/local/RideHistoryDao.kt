@@ -26,6 +26,12 @@ interface RideHistoryDao {
     @Query("UPDATE ride_history SET accepted = :accepted WHERE id = :localId")
     suspend fun updateAccepted(localId: Long, accepted: Boolean)
 
+    @Query("SELECT COALESCE(SUM(netProfit), 0) FROM ride_history WHERE accepted = 1 AND createdAt >= :since")
+    fun observeAcceptedProfitSince(since: Long): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(netProfit), 0) FROM ride_history WHERE accepted = 1 AND createdAt >= :since")
+    suspend fun getAcceptedProfitSince(since: Long): Double
+
     @Query("SELECT COUNT(*) FROM ride_history")
     fun observeCount(): Flow<Int>
 }
