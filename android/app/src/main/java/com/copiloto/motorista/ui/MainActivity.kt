@@ -17,9 +17,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,8 +37,10 @@ import androidx.navigation.compose.rememberNavController
 import com.copiloto.motorista.ui.screens.AuthScreen
 import com.copiloto.motorista.ui.screens.HistoryScreen
 import com.copiloto.motorista.ui.screens.HomeScreen
+import com.copiloto.motorista.ui.screens.OnboardingScreen
 import com.copiloto.motorista.ui.screens.SettingsScreen
 import com.copiloto.motorista.ui.theme.CopilotoTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,10 +76,29 @@ private enum class Destination(val route: String, val label: String, val icon: I
 
 @Composable
 private fun CopilotoApp(onLogout: () -> Unit) {
-    val navController = rememberNavController()
     val viewModel: MainViewModel = viewModel()
+    val onboardingDone by viewModel.onboardingDone.collectAsStateWithLifecycle()
+
+    when (onboardingDone) {
+        null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        false -> OnboardingScreen(onFinish = { viewModel.markOnboardingDone() })
+        true -> MainScaffold(viewModel, onLogout)
+    }
+}
+
+@Composable
+private fun MainScaffold(viewModel: MainViewModel, onLogout: () -> Unit) {
+    val navController = rememberNavController()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val onMessage: (String) -> Unit = { message ->
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             val backStack by navController.currentBackStackEntryAsState()
             val current = backStack?.destination
@@ -103,9 +128,11 @@ private fun CopilotoApp(onLogout: () -> Unit) {
             startDestination = Destination.HOME.route,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(Destination.HOME.route) { HomeScreen(viewModel) }
+            composable(Destination.HOME.route) { HomeScreen(viewModel, onMessage = onMessage) }
             composable(Destination.HISTORY.route) { HistoryScreen(viewModel) }
-            composable(Destination.SETTINGS.route) { SettingsScreen(viewModel, onLogout = onLogout) }
+            composable(Destination.SETTINGS.route) {
+                SettingsScreen(viewModel, onLogout = onLogout, onMessage = onMessage)
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import com.copiloto.motorista.data.remote.NetworkModule
 import com.copiloto.motorista.data.repository.AuthRepository
 import com.copiloto.motorista.data.repository.RideHistoryRepository
 import com.copiloto.motorista.data.settings.DriverProfileRepository
+import com.copiloto.motorista.data.settings.OnboardingStore
 import com.copiloto.motorista.data.settings.TokenStore
 
 /**
@@ -27,6 +28,8 @@ class CopilotoContainer(context: Context) {
     val driverProfileRepository: DriverProfileRepository by lazy {
         DriverProfileRepository(appContext)
     }
+
+    val onboardingStore: OnboardingStore by lazy { OnboardingStore(appContext) }
 
     val rideHistoryRepository: RideHistoryRepository by lazy {
         RideHistoryRepository(database.rideHistoryDao(), api)

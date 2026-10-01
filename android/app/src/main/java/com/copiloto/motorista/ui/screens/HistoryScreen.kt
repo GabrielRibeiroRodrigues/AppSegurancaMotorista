@@ -21,12 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.copiloto.motorista.data.local.RideHistoryEntity
+import com.copiloto.motorista.data.model.RideClassification
 import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.ui.MainViewModel
 import com.copiloto.motorista.ui.UiFormat
+import java.util.Calendar
 
 @Composable
 fun HistoryScreen(viewModel: MainViewModel) {
@@ -50,8 +53,84 @@ fun HistoryScreen(viewModel: MainViewModel) {
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        item { TodaySummary(rides) }
         items(rides, key = { it.id }) { ride -> RideRow(ride) }
     }
+}
+
+@Composable
+private fun TodaySummary(rides: List<RideHistoryEntity>) {
+    val today = rides.filter { isToday(it.createdAt) }
+    val lucro = today.sumOf { it.netProfit }
+    val total = today.size
+    val green = today.count { it.classification == RideClassification.GREEN.name }
+    val pctGreen = if (total > 0) green * 100 / total else 0
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "Hoje",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = UiFormat.money(lucro),
+                label = "Lucro líquido",
+                color = if (lucro >= 0) Color(0xFF22C55E) else Color(0xFFEF4444),
+            )
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = total.toString(),
+                label = "Corridas",
+            )
+            StatCard(
+                modifier = Modifier.weight(1f),
+                value = "$pctGreen%",
+                label = "Verdes",
+                color = Color(0xFF22C55E),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    value: String,
+    label: String,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Card(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+private fun isToday(epochMillis: Long): Boolean {
+    val now = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = epochMillis }
+    return now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
 }
 
 @Composable

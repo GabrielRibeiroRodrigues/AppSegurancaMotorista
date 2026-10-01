@@ -27,6 +27,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         container.rideHistoryRepository.observeRecent(50)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** null while loading; false shows the onboarding, true shows the main app. */
+    val onboardingDone: StateFlow<Boolean?> = container.onboardingStore.isDone
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun markOnboardingDone() {
+        viewModelScope.launch { container.onboardingStore.markDone() }
+    }
+
     fun saveProfile(profile: DriverProfile) {
         viewModelScope.launch {
             container.driverProfileRepository.save(profile)

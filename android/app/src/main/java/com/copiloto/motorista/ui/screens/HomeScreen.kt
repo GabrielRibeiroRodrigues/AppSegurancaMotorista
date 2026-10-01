@@ -48,7 +48,7 @@ import com.copiloto.motorista.ui.MainViewModel
 import com.copiloto.motorista.ui.PermissionUtils
 
 @Composable
-fun HomeScreen(viewModel: MainViewModel) {
+fun HomeScreen(viewModel: MainViewModel, onMessage: (String) -> Unit = {}) {
     val context = LocalContext.current
     val profile by viewModel.profile.collectAsStateWithLifecycle()
 
@@ -65,6 +65,9 @@ fun HomeScreen(viewModel: MainViewModel) {
         if (cameraOk && audioOk) {
             DashcamService.start(context)
             dashcamOn = true
+            onMessage("Gravação iniciada")
+        } else {
+            onMessage("Permissões de câmera/microfone necessárias")
         }
     }
 
@@ -160,7 +163,10 @@ fun HomeScreen(viewModel: MainViewModel) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Button(
-                    onClick = { viewModel.simulateRide() },
+                    onClick = {
+                        viewModel.simulateRide()
+                        onMessage("Corrida simulada")
+                    },
                     enabled = canOverlay,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -195,6 +201,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                         onClick = {
                             DashcamService.stop(context)
                             dashcamOn = false
+                            onMessage("Gravação encerrada")
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -206,6 +213,7 @@ fun HomeScreen(viewModel: MainViewModel) {
                             if (hasDashcamPermissions(context)) {
                                 DashcamService.start(context)
                                 dashcamOn = true
+                                onMessage("Gravação iniciada")
                             } else {
                                 dashcamPermissionLauncher.launch(dashcamPermissions())
                             }

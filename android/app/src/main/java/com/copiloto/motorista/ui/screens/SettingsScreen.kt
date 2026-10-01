@@ -36,7 +36,11 @@ import com.copiloto.motorista.ui.MainViewModel
 import com.copiloto.motorista.ui.UiFormat
 
 @Composable
-fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
+fun SettingsScreen(
+    viewModel: MainViewModel,
+    onLogout: () -> Unit = {},
+    onMessage: (String) -> Unit = {},
+) {
     val context = LocalContext.current
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     var dumpCount by remember { mutableStateOf(ParserDumpStore.count(context)) }
@@ -124,6 +128,7 @@ fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
                     ),
                 )
                 saved = true
+                onMessage("Configurações salvas")
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -171,6 +176,7 @@ fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
                         ParserDumpStore.clear(context)
                         dumpCount = 0
                         dumpRequested = false
+                        onMessage("Dumps apagados")
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
