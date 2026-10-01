@@ -22,11 +22,15 @@ jobs:
 
       - name: Configura Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # O default inclui o pacote obsoleto "tools", que não existe mais nas
+          # imagens novas do runner e faz a action falhar. Instalamos só o necessário.
+          packages: platform-tools
 
       - name: Instala componentes do SDK
         run: |
           yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" > /dev/null
 
       - name: Roda os testes unitários
         working-directory: android
