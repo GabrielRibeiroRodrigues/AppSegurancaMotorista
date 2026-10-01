@@ -13,4 +13,11 @@
     <string name="tts_green">verde</string>
     <string name="tts_yellow">amarela</string>
     <string name="tts_red">vermelha</string>
+
+    <!-- Transparent safety dashcam (Module E). -->
+    <string name="dashcam_channel_name">Gravação de segurança</string>
+    <string name="dashcam_channel_description">Avisa de forma visível quando o dashcam está gravando.</string>
+    <string name="dashcam_notification_title">Gravando viagem</string>
+    <string name="dashcam_notification_text">Dashcam de segurança ativo (vídeo e áudio).</string>
+    <string name="dashcam_stop_action">Parar</string>
 </resources>

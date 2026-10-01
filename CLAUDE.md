@@ -10,7 +10,7 @@ Monorepo with two independent projects:
 - `android/` — native Android client (Kotlin, Jetpack Compose, MVVM, Room, Coroutines).
 - `backend/` — Django REST + PostgreSQL API, containerized with Docker.
 
-> **Scope note:** The spec's Module E ("Secret Camera" — covert background recording that bypasses the OS camera-preview requirement) is intentionally **not implemented**. It was deferred by the project owner because covertly recording people is a legal/privacy problem. If a camera feature is revisited, build it as a *transparent* dashcam (visible persistent notification, no preview bypass).
+> **Scope note:** The spec's Module E was specified as a "Secret Camera" (covert recording that bypasses the OS camera-preview requirement). The covert/bypass design is intentionally **not** built — covertly recording people is a legal/privacy problem. Instead Module E is implemented as a **transparent safety dashcam**: CameraX video+audio in a foreground service with a *visible, persistent* "Gravando viagem" notification, no 1x1 preview bypass. The 5 GB rotating buffer and scoped storage from the spec are kept (`DashcamStorage`, `DashcamService`).
 
 ## Commands
 
