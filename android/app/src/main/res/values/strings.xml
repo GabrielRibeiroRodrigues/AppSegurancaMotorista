@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Copiloto Motorista</string>
+    <string name="accessibility_service_label">Copiloto — Leitura de corridas</string>
+    <string name="accessibility_service_description">Permite que o Copiloto leia as ofertas de corrida exibidas pelos aplicativos de transporte para calcular a rentabilidade em tempo real. Nenhum dado é coletado fora dos apps de transporte selecionados.</string>
+
+    <string name="overlay_channel_name">Copiloto ativo</string>
+    <string name="overlay_channel_description">Mantém o cartão flutuante e o assistente de voz prontos.</string>
+    <string name="overlay_notification_title">Copiloto ativo</string>
+    <string name="overlay_notification_text">Monitorando ofertas de corrida.</string>
+
+    <!-- Text-To-Speech ride classifications (Module D). -->
+    <string name="tts_green">verde</string>
+    <string name="tts_yellow">amarela</string>
+    <string name="tts_red">vermelha</string>
+</resources>

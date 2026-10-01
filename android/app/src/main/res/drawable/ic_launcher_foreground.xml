@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Steering wheel glyph centered in the adaptive-icon safe zone. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 C40.7,30 30,40.7 30,54 C30,67.3 40.7,78 54,78 C67.3,78 78,67.3 78,54 C78,40.7 67.3,30 54,30 Z M54,36 C62.1,36 69,41.4 71.3,48.9 L58,53 L58,41.3 C56.7,41.1 55.4,41 54,41 C52.6,41 51.3,41.1 50,41.3 L50,53 L36.7,48.9 C39,41.4 45.9,36 54,36 Z M38,54 C38,53.5 38,53 38.1,52.5 L50,58 L50,70.6 C43,68.9 38,62.8 38,54 Z M58,70.6 L58,58 L69.9,52.5 C70,53 70,53.5 70,54 C70,62.8 65,68.9 58,70.6 Z" />
+</vector>
