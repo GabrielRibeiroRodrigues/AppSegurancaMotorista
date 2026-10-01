@@ -1,25 +1,37 @@
 package com.copiloto.motorista.service
 
 import android.accessibilityservice.AccessibilityService
+import android.graphics.Rect
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.engine.RideParser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Scraping Engine (Module A). Watches the configured rideshare apps, extracts the
  * text from the current window's node tree when an offer screen appears, parses it
  * into a [RideOffer], and forwards complete offers to the [OverlayService].
  *
- * The set of events and packages is also declared in
- * `res/xml/accessibility_service_config.xml`; the checks here are a defensive
- * second filter.
+ * To help tune the parser against real (and changing) app layouts, it also writes
+ * a structured dump of the node tree via [ParserDumpStore] — automatically when a
+ * transport app is on screen but parsing fails, or on demand via [requestDump].
  */
 class RideAccessibilityService : AccessibilityService() {
 
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private var lastSignature: String? = null
     private var lastEmittedAt = 0L
+    private var lastDumpAt = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
@@ -36,10 +48,20 @@ class RideAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
         val texts = mutableListOf<String>()
         collectText(root, texts)
+
+        // Manual, developer-triggered dump: capture whatever is on screen now.
+        if (consumeDumpRequest()) {
+            dumpTree(root, source, label = "manual")
+        }
+
         if (texts.isEmpty()) return
 
-        val offer = RideParser.parse(texts, source) ?: return
-        if (!offer.isComplete) return
+        val offer = RideParser.parse(texts, source)
+        if (offer == null || !offer.isComplete) {
+            // Parser failed on a transport screen — save a dump for later analysis.
+            maybeDumpOnFailure(root, source)
+            return
+        }
 
         if (shouldEmit(offer)) {
             OverlayService.showOffer(this, offer)
@@ -48,6 +70,11 @@ class RideAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         // No long-running work to interrupt.
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ioScope.cancel()
     }
 
     /** Depth-first collection of visible text, bounded to keep traversal cheap. */
@@ -74,8 +101,70 @@ class RideAccessibilityService : AccessibilityService() {
         return true
     }
 
-    private companion object {
-        const val MAX_NODES = 300
-        const val DEDUPE_WINDOW_MS = 15_000L
+    /** Throttled automatic dump when parsing fails on a transport screen. */
+    private fun maybeDumpOnFailure(root: AccessibilityNodeInfo, source: RideSource) {
+        val now = System.currentTimeMillis()
+        if (now - lastDumpAt < DUMP_THROTTLE_MS) return
+        lastDumpAt = now
+        dumpTree(root, source, label = "fail")
+    }
+
+    /** Builds a structured text dump of the tree (on this thread) and writes it off-thread. */
+    private fun dumpTree(root: AccessibilityNodeInfo, source: RideSource, label: String) {
+        val timestamp = DATE_FORMAT.format(Date())
+        val builder = StringBuilder()
+        builder.append("# Copiloto parser dump\n")
+        builder.append("source=${source.name} package=${source.packageName}\n")
+        builder.append("time=$timestamp\n")
+        builder.append("---\n")
+        appendNode(root, 0, builder)
+        val content = builder.toString()
+        ioScope.launch {
+            runCatching { ParserDumpStore.save(this@RideAccessibilityService, label, content) }
+        }
+    }
+
+    private fun appendNode(node: AccessibilityNodeInfo?, depth: Int, out: StringBuilder) {
+        if (node == null || depth > MAX_DEPTH) return
+        val indent = "  ".repeat(depth)
+        val bounds = Rect().also { node.getBoundsInScreen(it) }
+        val className = node.className?.toString()?.substringAfterLast('.') ?: "?"
+        val id = node.viewIdResourceName?.substringAfterLast('/') ?: ""
+        val text = node.text?.toString()?.replace('\n', ' ') ?: ""
+        val desc = node.contentDescription?.toString()?.replace('\n', ' ') ?: ""
+
+        out.append(indent)
+            .append(className)
+            .append(if (id.isNotEmpty()) " #$id" else "")
+            .append(if (text.isNotEmpty()) "  text=\"$text\"" else "")
+            .append(if (desc.isNotEmpty()) "  desc=\"$desc\"" else "")
+            .append("  $bounds")
+            .append('\n')
+
+        for (i in 0 until node.childCount) {
+            appendNode(node.getChild(i), depth + 1, out)
+        }
+    }
+
+    companion object {
+        private const val MAX_NODES = 300
+        private const val MAX_DEPTH = 40
+        private const val DEDUPE_WINDOW_MS = 15_000L
+        private const val DUMP_THROTTLE_MS = 8_000L
+        private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+
+        @Volatile
+        private var dumpRequested = false
+
+        /** Asks the running service to dump the next transport screen it sees. */
+        fun requestDump() {
+            dumpRequested = true
+        }
+
+        private fun consumeDumpRequest(): Boolean {
+            if (!dumpRequested) return false
+            dumpRequested = false
+            return true
+        }
     }
 }

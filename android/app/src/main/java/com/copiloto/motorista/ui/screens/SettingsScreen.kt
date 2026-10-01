@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -23,17 +24,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.copiloto.motorista.data.model.DriverProfile
+import com.copiloto.motorista.service.ParserDumpStore
+import com.copiloto.motorista.service.RideAccessibilityService
 import com.copiloto.motorista.ui.MainViewModel
 import com.copiloto.motorista.ui.UiFormat
 
 @Composable
 fun SettingsScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
     val profile by viewModel.profile.collectAsStateWithLifecycle()
+    var dumpCount by remember { mutableStateOf(ParserDumpStore.count(context)) }
+    var dumpRequested by remember { mutableStateOf(false) }
 
     var fuelPrice by remember { mutableStateOf("") }
     var kmPerLiter by remember { mutableStateOf("") }
@@ -123,6 +130,47 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
+        }
+
+        SectionTitle("Depuração do parser")
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Quando a leitura de uma corrida falha, o app salva um \"dump\" da tela (texto) no armazenamento interno para ajudar a ajustar o parser.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Dumps salvos: $dumpCount",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                OutlinedButton(
+                    onClick = {
+                        RideAccessibilityService.requestDump()
+                        dumpRequested = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Gerar dump da próxima tela")
+                }
+                if (dumpRequested) {
+                    Text(
+                        "Abra o app de corrida: a próxima tela será salva como dump.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                OutlinedButton(
+                    onClick = {
+                        ParserDumpStore.clear(context)
+                        dumpCount = 0
+                        dumpRequested = false
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Limpar dumps")
+                }
+            }
         }
     }
 }
