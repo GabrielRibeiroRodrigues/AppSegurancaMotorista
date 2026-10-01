@@ -1,0 +1,18 @@
+# Normaliza finais de linha de forma consistente entre Windows, Linux e macOS.
+* text=auto eol=lf
+
+# Scripts que precisam de LF para rodar (shell no container / Unix).
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Scripts do Windows precisam de CRLF.
+*.bat text eol=crlf
+
+# Arquivos binários — nunca normalizar.
+*.jar binary
+*.apk binary
+*.aab binary
+*.keystore binary
+*.png binary
+*.jpg binary
+*.webp binary

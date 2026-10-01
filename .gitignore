@@ -1,0 +1,14 @@
+# Ferramentas locais do Claude Code (skills, locks) — não fazem parte do app.
+.claude/
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python (caso algo escape do backend/.gitignore)
+__pycache__/
+*.pyc
+.venv/
+venv/
