@@ -28,6 +28,7 @@ Monorepo with two independent projects:
 - Checks: `USE_SQLITE=True python manage.py check`
 - Tests: `USE_SQLITE=True python manage.py test`
 - Single test: `USE_SQLITE=True python manage.py test api.tests.RideApiTests.test_create_ride_links_to_authenticated_driver`
+- Deploy to a VPS (HTTP on `IP:8000`): `docker compose -f docker-compose.prod.yml up -d --build` — see `backend/DEPLOY.md`. WhiteNoise serves static files so the admin is styled with `DEBUG=False`; the `prod` compose does not publish Postgres to the internet.
 
 ## Architecture
 
