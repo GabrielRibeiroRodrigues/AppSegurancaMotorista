@@ -16,6 +16,7 @@ class RideCalculatorTest {
         maintenanceCostPerKm = 0.25,
         targetPerKm = 1.80,
         minimumPerKm = 1.20,
+        targetPerHour = 30.0,
     )
 
     private fun offer(price: Double, km: Double, min: Int) =
@@ -56,6 +57,26 @@ class RideCalculatorTest {
         val result = RideCalculator.evaluate(offer(6.0, 6.0, 12), profile)
         assertEquals(RideClassification.RED, result.classification)
     }
+
+    @Test
+    fun `green per km but poor hourly rate is downgraded to yellow`() {
+        // 10 / 5 = 2.0 R$/km (>= target 1.8 -> GREEN by km), but
+        // (10 / 60) * 60 = R$10/h (< target 30/h) -> downgraded to YELLOW.
+        val result = RideCalculator.evaluate(offer(10.0, 5.0, 60), profile)
+        assertEquals(RideClassification.GREEN, classifyByKmOnly(result.grossPerKm))
+        assertEquals(RideClassification.YELLOW, result.classification)
+    }
+
+    @Test
+    fun `green per km with good hourly rate stays green`() {
+        // 20 / 6 = 3.33 R$/km and (20/12)*60 = R$100/h (>= 30) -> stays GREEN.
+        val result = RideCalculator.evaluate(offer(20.0, 6.0, 12), profile)
+        assertEquals(RideClassification.GREEN, result.classification)
+    }
+
+    // Mirrors the per-km-only rule to document the downgrade in the test above.
+    private fun classifyByKmOnly(grossPerKm: Double): RideClassification =
+        if (grossPerKm >= profile.targetPerKm) RideClassification.GREEN else RideClassification.YELLOW
 
     @Test
     fun `ride that loses money is always red`() {

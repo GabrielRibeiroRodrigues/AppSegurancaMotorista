@@ -26,6 +26,7 @@ class DriverProfileRepository(private val context: Context) {
         val maintenance = doublePreferencesKey("maintenance_cost_per_km")
         val target = doublePreferencesKey("target_per_km")
         val minimum = doublePreferencesKey("minimum_per_km")
+        val targetHour = doublePreferencesKey("target_per_hour")
         val voice = booleanPreferencesKey("voice_enabled")
     }
 
@@ -37,6 +38,7 @@ class DriverProfileRepository(private val context: Context) {
             maintenanceCostPerKm = prefs[Keys.maintenance] ?: defaults.maintenanceCostPerKm,
             targetPerKm = prefs[Keys.target] ?: defaults.targetPerKm,
             minimumPerKm = prefs[Keys.minimum] ?: defaults.minimumPerKm,
+            targetPerHour = prefs[Keys.targetHour] ?: defaults.targetPerHour,
             voiceEnabled = prefs[Keys.voice] ?: defaults.voiceEnabled,
         )
     }
@@ -50,6 +52,7 @@ class DriverProfileRepository(private val context: Context) {
             prefs[Keys.maintenance] = profile.maintenanceCostPerKm
             prefs[Keys.target] = profile.targetPerKm
             prefs[Keys.minimum] = profile.minimumPerKm
+            prefs[Keys.targetHour] = profile.targetPerHour
             prefs[Keys.voice] = profile.voiceEnabled
         }
     }

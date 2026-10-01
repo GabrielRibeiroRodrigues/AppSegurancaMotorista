@@ -38,7 +38,7 @@ object RideCalculator {
             grossPerKm = grossPerKm,
             grossPerHour = grossPerHour,
             netProfit = netProfit,
-            classification = classify(grossPerKm, netProfit, profile),
+            classification = classify(grossPerKm, grossPerHour, netProfit, profile),
         )
     }
 
@@ -46,15 +46,27 @@ object RideCalculator {
      * GREEN at/above target R$/km, RED below the minimum (or when the ride loses
      * money), YELLOW in between. Net profit acts as a hard floor: a ride that
      * does not cover its costs is never shown as acceptable.
+     *
+     * Additionally, a ride that qualifies as GREEN by R$/km but pays less than the
+     * driver's target R$/hour is **downgraded to YELLOW** — a poor hourly rate is
+     * never recommended as a great ride.
      */
     private fun classify(
         grossPerKm: Double,
+        grossPerHour: Double,
         netProfit: Double,
         profile: DriverProfile,
-    ): RideClassification = when {
-        netProfit <= 0.0 -> RideClassification.RED
-        grossPerKm >= profile.targetPerKm -> RideClassification.GREEN
-        grossPerKm >= profile.minimumPerKm -> RideClassification.YELLOW
-        else -> RideClassification.RED
+    ): RideClassification {
+        val byPerKm = when {
+            netProfit <= 0.0 -> RideClassification.RED
+            grossPerKm >= profile.targetPerKm -> RideClassification.GREEN
+            grossPerKm >= profile.minimumPerKm -> RideClassification.YELLOW
+            else -> RideClassification.RED
+        }
+        return if (byPerKm == RideClassification.GREEN && grossPerHour < profile.targetPerHour) {
+            RideClassification.YELLOW
+        } else {
+            byPerKm
+        }
     }
 }

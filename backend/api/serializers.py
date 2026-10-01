@@ -34,6 +34,7 @@ class DriverProfileSerializer(serializers.ModelSerializer):
             "maintenance_cost_per_km",
             "target_per_km",
             "minimum_per_km",
+            "target_per_hour",
             "voice_enabled",
         ]
 

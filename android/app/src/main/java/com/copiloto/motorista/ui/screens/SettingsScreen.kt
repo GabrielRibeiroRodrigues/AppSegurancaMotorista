@@ -47,6 +47,7 @@ fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
     var maintenance by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
     var minimum by remember { mutableStateOf("") }
+    var targetHour by remember { mutableStateOf("") }
     var voice by remember { mutableStateOf(true) }
     var saved by remember { mutableStateOf(false) }
 
@@ -57,6 +58,7 @@ fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
         maintenance = profile.maintenanceCostPerKm.toString()
         target = profile.targetPerKm.toString()
         minimum = profile.minimumPerKm.toString()
+        targetHour = profile.targetPerHour.toString()
         voice = profile.voiceEnabled
     }
 
@@ -95,6 +97,9 @@ fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
         NumberField("Meta — verde a partir de", target) { target = it; saved = false }
         NumberField("Mínimo — vermelho abaixo de", minimum) { minimum = it; saved = false }
 
+        SectionTitle("Meta de ganho por hora (R$/h)")
+        NumberField("Mínimo p/ verde — abaixo disso vira amarela", targetHour) { targetHour = it; saved = false }
+
         SectionTitle("Voz")
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -114,6 +119,7 @@ fun SettingsScreen(viewModel: MainViewModel, onLogout: () -> Unit = {}) {
                         maintenanceCostPerKm = maintenance.toDoubleFlexible(),
                         targetPerKm = target.toDoubleFlexible(),
                         minimumPerKm = minimum.toDoubleFlexible(),
+                        targetPerHour = targetHour.toDoubleFlexible(),
                         voiceEnabled = voice,
                     ),
                 )

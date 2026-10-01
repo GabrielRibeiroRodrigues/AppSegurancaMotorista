@@ -22,15 +22,17 @@ fun RideEvaluation.toEntity(accepted: Boolean, createdAt: Long = System.currentT
         createdAt = createdAt,
     )
 
-/** Converts a stored row into its wire representation for sync. */
+/** Converts a stored row into its wire representation for sync.
+ *  Financial/distance values are rounded to 2 decimals to satisfy the backend
+ *  DecimalField precision (see [round2]). */
 fun RideHistoryEntity.toDto() = RideHistoryDto(
     source = source,
-    grossPrice = grossPrice,
-    distanceKm = distanceKm,
+    grossPrice = grossPrice.round2(),
+    distanceKm = distanceKm.round2(),
     timeMinutes = timeMinutes,
-    netProfit = netProfit,
-    grossPerKm = grossPerKm,
-    grossPerHour = grossPerHour,
+    netProfit = netProfit.round2(),
+    grossPerKm = grossPerKm.round2(),
+    grossPerHour = grossPerHour.round2(),
     classification = classification,
     accepted = accepted,
     capturedAt = Instant.ofEpochMilli(createdAt).toString(),
