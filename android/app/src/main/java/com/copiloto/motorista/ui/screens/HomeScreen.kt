@@ -54,6 +54,7 @@ fun HomeScreen(viewModel: MainViewModel) {
 
     var canOverlay by remember { mutableStateOf(PermissionUtils.canDrawOverlays(context)) }
     var accessibilityOn by remember { mutableStateOf(PermissionUtils.isAccessibilityEnabled(context)) }
+    var ignoringBattery by remember { mutableStateOf(PermissionUtils.isIgnoringBatteryOptimizations(context)) }
     var dashcamOn by remember { mutableStateOf(DashcamService.isRunning) }
 
     val dashcamPermissionLauncher = rememberLauncherForActivityResult(
@@ -74,6 +75,7 @@ fun HomeScreen(viewModel: MainViewModel) {
             if (event == Lifecycle.Event.ON_RESUME) {
                 canOverlay = PermissionUtils.canDrawOverlays(context)
                 accessibilityOn = PermissionUtils.isAccessibilityEnabled(context)
+                ignoringBattery = PermissionUtils.isIgnoringBatteryOptimizations(context)
                 dashcamOn = DashcamService.isRunning
             }
         }
@@ -114,6 +116,40 @@ fun HomeScreen(viewModel: MainViewModel) {
             actionLabel = "Ativar",
             onAction = { context.startActivity(PermissionUtils.accessibilitySettingsIntent()) },
         )
+
+        if (!ignoringBattery) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Error,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                        )
+                        Text("Otimização de bateria ativa", fontWeight = FontWeight.SemiBold)
+                    }
+                    Text(
+                        "O Android pode encerrar o Copiloto em segundo plano, interrompendo a leitura das corridas. Desative a otimização de bateria para o app funcionar o tempo todo.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = {
+                            context.startActivity(PermissionUtils.ignoreBatteryOptimizationIntent(context))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Desativar otimização")
+                    }
+                }
+            }
+        }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -3,6 +3,7 @@ package com.copiloto.motorista.ui
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import android.text.TextUtils
 import com.copiloto.motorista.service.RideAccessibilityService
@@ -35,4 +36,16 @@ object PermissionUtils {
 
     fun accessibilitySettingsIntent() =
         android.content.Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+
+    /** Whether the OS is already exempting the app from battery optimization. */
+    fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    /** Opens the system prompt to exempt this app from battery optimization. */
+    fun ignoreBatteryOptimizationIntent(context: Context) = android.content.Intent(
+        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+        Uri.parse("package:${context.packageName}"),
+    )
 }
