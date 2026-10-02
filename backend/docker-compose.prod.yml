@@ -28,7 +28,9 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      # Porta do host configurável (WEB_PORT no .env) para evitar conflito com
+      # serviços já existentes na VPS. O container continua em 8000 internamente.
+      - "${WEB_PORT:-8000}:8000"
     restart: unless-stopped
 
 volumes:

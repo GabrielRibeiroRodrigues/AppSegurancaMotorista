@@ -28,18 +28,25 @@ nano .env   # edite:
 ```
 
 ## 4. Subir
+Use um nome de projeto próprio (`-p copiloto`) para isolar os containers/rede/volume
+dos outros serviços que já rodam na VPS:
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -p copiloto -f docker-compose.prod.yml up -d --build
 ```
 O `entrypoint.sh` roda `migrate` + `collectstatic` automaticamente. A API fica em
-`http://SEU_IP:8000/`. Crie um admin:
+`http://SEU_IP:<WEB_PORT>/`. Crie um admin:
 ```bash
-docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+docker compose -p copiloto -f docker-compose.prod.yml exec web python manage.py createsuperuser
 ```
 
-## 5. Abrir a porta 8000
-- **UFW:** `sudo ufw allow 8000/tcp`
-- **Cloud (AWS/Oracle/GCP/DigitalOcean):** libere a porta 8000 TCP no *security group* / firewall do painel.
+> **VPS com outros serviços:** o Postgres **não** publica porta (fica só na rede interna
+> do compose), então não conflita. Só a porta do web importa. Se a 8000 já estiver em uso,
+> defina outra no `.env` (ex.: `WEB_PORT=8080`) — veja se está livre com
+> `sudo ss -tlnp | grep :8000`.
+
+## 5. Abrir a porta no firewall (a mesma do `WEB_PORT`)
+- **UFW:** `sudo ufw allow 8000/tcp` (troque 8000 pelo seu `WEB_PORT`)
+- **Cloud (AWS/Oracle/GCP/DigitalOcean):** libere essa porta TCP no *security group* / firewall do painel.
 
 ## 6. Testar
 No navegador do PC: `http://SEU_IP:8000/api/profile/` deve responder **401** (sem token = correto).
