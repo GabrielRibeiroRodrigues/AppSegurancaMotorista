@@ -446,8 +446,10 @@ private fun hasProtectionPermissions(context: android.content.Context): Boolean 
         PackageManager.PERMISSION_GRANTED
 
 private fun protectionPermissions(): Array<String> {
+    // Camera is primed here so the live video can start instantly when an alert fires.
     val base = mutableListOf(
         Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
     )
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

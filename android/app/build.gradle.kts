@@ -20,6 +20,8 @@ android {
 
         // Base URL of the Django backend. Override per build variant / local.properties as needed.
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+        // WebRTC signaling server for the live video (separate service, port 4001).
+        buildConfigField("String", "SIGNALING_URL", "\"ws://10.0.2.2:4001/signaling\"")
     }
 
     buildTypes {
@@ -88,6 +90,8 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.video)
+
+    implementation(libs.stream.webrtc.android)
 
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.datastore.preferences)

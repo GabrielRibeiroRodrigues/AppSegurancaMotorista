@@ -91,6 +91,12 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <!-- Live video (DesafioMaker): streams the camera to the operations center. -->
+        <service
+            android:name=".service.StreamingService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
+
         <!-- Module F: WorkManager default initializer; configuration provided by CopilotoApp. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

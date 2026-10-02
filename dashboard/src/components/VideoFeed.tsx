@@ -5,8 +5,12 @@ interface VideoFeedProps {
   alertId: string;
 }
 
-const API_URL = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:4000';
-const SIGNALING_URL = `${API_URL.replace(/^http/, 'ws')}/signaling`;
+const API_URL = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:8000';
+// O servidor de sinalização é um serviço à parte (porta 4001). Pode ser
+// configurado via VITE_SIGNALING_URL; por padrão, deriva do host da API.
+const SIGNALING_URL =
+  import.meta.env.VITE_SIGNALING_URL ??
+  `${API_URL.replace(/^http/, 'ws').replace(/:\d+$/, '')}:4001/signaling`;
 const CONNECT_TIMEOUT_MS = 10000;
 
 const ICE_SERVERS: RTCIceServer[] = [

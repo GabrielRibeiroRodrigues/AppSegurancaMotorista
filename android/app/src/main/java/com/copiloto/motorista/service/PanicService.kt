@@ -132,7 +132,11 @@ class PanicService : Service() {
         if (now - lastFireAt < FIRE_COOLDOWN_MS) return
         lastFireAt = now
         scope.launch {
-            runCatching { container.panicRepository.fireAlert(transcript, isTest = false) }
+            val alertId = runCatching {
+                container.panicRepository.fireAlert(transcript, isTest = false)
+            }.getOrNull()
+            // On a real alert, stream the camera live to the Central de Operações.
+            if (alertId != null) StreamingService.start(this@PanicService, alertId)
         }
     }
 

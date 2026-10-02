@@ -33,5 +33,12 @@ services:
       - "${WEB_PORT:-8000}:8000"
     restart: unless-stopped
 
+  # Sinalização WebRTC do vídeo ao vivo (Central de Operações).
+  signaling:
+    build: ../signaling
+    ports:
+      - "${SIGNALING_PORT:-4001}:4001"
+    restart: unless-stopped
+
 volumes:
   postgres_data:

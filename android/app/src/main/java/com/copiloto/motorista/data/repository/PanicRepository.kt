@@ -20,8 +20,12 @@ class PanicRepository(
     private val appContext: Context,
 ) {
 
-    /** Fires an alert from the current location. Returns true if sent right away. */
-    suspend fun fireAlert(transcript: String, isTest: Boolean): Boolean {
+    /**
+     * Fires an alert from the current location. Returns the created alert id when
+     * it was sent right away (so the caller can start the live video for that id),
+     * or null when it was queued offline.
+     */
+    suspend fun fireAlert(transcript: String, isTest: Boolean): Long? {
         val (lat, lng) = LocationHelper.lastKnown(appContext)
         val request = CreateAlertRequest(
             timestamp = Instant.now().toString(),
@@ -31,8 +35,7 @@ class PanicRepository(
             isTest = isTest,
         )
         return try {
-            api.createAlert(request)
-            true
+            api.createAlert(request).id
         } catch (e: Exception) {
             pendingAlertDao.insert(
                 PendingAlertEntity(
@@ -44,7 +47,7 @@ class PanicRepository(
                 ),
             )
             AlertSyncScheduler.schedule(appContext)
-            false
+            null
         }
     }
 

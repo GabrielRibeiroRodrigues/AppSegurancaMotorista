@@ -11,6 +11,7 @@ import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.data.repository.toDto
 import com.copiloto.motorista.service.OverlayService
 import com.copiloto.motorista.service.PanicService
+import com.copiloto.motorista.service.StreamingService
 import com.copiloto.motorista.sync.SyncScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -77,13 +78,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { container.panicStore.setPhrase(phrase) }
     }
 
-    /** Fires a test alert (shown as a test in the Central de Operações). */
+    /** Fires a test alert (shown as a test in the Central de Operações) and
+     *  streams the camera so the operator can verify the live video too. */
     fun sendTestAlert(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val sent = runCatching {
+            val alertId = runCatching {
                 container.panicRepository.fireAlert("Alerta de teste", isTest = true)
-            }.getOrDefault(false)
-            onResult(sent)
+            }.getOrNull()
+            if (alertId != null) StreamingService.start(getApplication(), alertId)
+            onResult(alertId != null)
         }
     }
 

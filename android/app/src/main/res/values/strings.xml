@@ -26,4 +26,5 @@
     <string name="protection_channel_description">Modo proteção em segundo plano.</string>
     <string name="protection_notification_title">Copiloto ativo</string>
     <string name="protection_notification_text">Modo proteção ligado.</string>
+    <string name="streaming_notification_text">Transmitindo vídeo e áudio.</string>
 </resources>
