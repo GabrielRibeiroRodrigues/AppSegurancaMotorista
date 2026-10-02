@@ -64,16 +64,27 @@ MainViewModel.simulateRide (Module G)─┘
 ### Auth & identity model (JWT)
 The API uses **JWT** (`djangorestframework-simplejwt`). A `DriverProfile` is a `OneToOne` to Django's `User`; every `RideHistory` is scoped to `driver__user=request.user`, so data follows the driver across devices. `backend/api/models.py` mirrors the Android domain models; keep the two in sync when fields change.
 
-On Android, `TokenStore` (DataStore) holds the access/refresh tokens. `AuthInterceptor` attaches `Authorization: Bearer <access>` to every request except those marked `No-Auth` (login/register/refresh); `TokenAuthenticator` refreshes the access token once on a 401 and clears the tokens (→ login screen) if the refresh fails. `MainActivity` shows `AuthScreen` until `TokenStore.isLoggedIn` is true.
+**Roles:** an **operator** of the Central de Operações is any `is_staff` user (created/promoted in the admin). The `IsOperator` permission (`api/permissions.py`) gates the alert list and operator actions; regular drivers are never staff. Login/register tokens embed `username` + `is_staff` claims (`CopilotoTokenObtainPairSerializer`) so the **signaling server** can authorize WebRTC connections without a DB call. Refresh tokens **rotate** and are **blacklisted** on logout (`/api/auth/logout/`); `login`/`register` are rate-limited (`auth` throttle scope). When behind a TLS proxy, set `SECURE_SSL=True` to turn on secure cookies + HSTS.
+
+On Android, `TokenStore` (DataStore) holds the access/refresh tokens. `AuthInterceptor` attaches `Authorization: Bearer <access>` to every request except those marked `No-Auth` (login/register/refresh); `TokenAuthenticator` refreshes the access token once on a 401 and clears the tokens (→ login screen) if the refresh fails. A one-time **LGPD consent gate** (`ConsentScreen`/`ConsentStore`) runs before `AuthScreen`; nothing else loads until the driver accepts.
 
 ### API routes
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
+| `GET` | `/api/health/` | não | liveness/readiness (checa o banco) |
 | `POST` | `/api/auth/register/` | não | `{username, email?, password}` → `{access, refresh, user}` |
 | `POST` | `/api/auth/login/` | não | `{username, password}` → `{access, refresh}` |
 | `POST` | `/api/auth/refresh/` | não | `{refresh}` → `{access}` |
+| `POST` | `/api/auth/logout/` | sim | `{refresh}` → 205; invalida o refresh (blacklist) |
+| `GET` | `/api/auth/me/` | sim | `{username, email, is_operator}` |
 | `GET` / `POST` | `/api/rides/` | sim | lista / cria o histórico de corridas do usuário |
 | `GET` / `PUT` | `/api/profile/` | sim | lê / atualiza a configuração do motorista |
+| `POST` | `/api/alerts/` | sim (motorista) | dispara um alerta de pânico |
+| `GET` | `/api/alerts/` | **operador** | lista alertas da Central |
+| `PATCH` | `/api/alerts/<id>/` | **operador** | ação do operador sobre um alerta |
+
+### Live video & signaling auth
+`signaling/server.js` only does the WebRTC handshake (one room per `alertId`). Every WS connection must carry the driver/operator JWT as `?token=<access>` — the server verifies it (HS256, same `DJANGO_SECRET_KEY` via `SIGNALING_JWT_SECRET`) and **only operators may `watch`**. `StreamingService` appends the driver's token; the dashboard's `VideoFeed` appends the operator's. STUN is built in; a **TURN** relay (coturn) is added for production via the `TURN_*` config (`BuildConfig` on Android, `VITE_TURN_*` on the dashboard). TLS (Caddy), TURN and Postgres backup live in `backend/docker-compose.tls.yml` — see `backend/DEPLOY.md`.
 
 ### How to log in (app)
 1. Suba o backend (`cd backend && docker compose up --build`).
