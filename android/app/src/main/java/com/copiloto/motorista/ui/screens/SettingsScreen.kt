@@ -6,13 +6,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +41,8 @@ import com.copiloto.motorista.service.ParserDumpStore
 import com.copiloto.motorista.service.RideAccessibilityService
 import com.copiloto.motorista.ui.MainViewModel
 import com.copiloto.motorista.ui.UiFormat
+import com.copiloto.motorista.ui.components.SectionLabel
+import com.copiloto.motorista.ui.theme.StatusDanger
 
 @Composable
 fun SettingsScreen(
@@ -58,7 +63,6 @@ fun SettingsScreen(
     var targetHour by remember { mutableStateOf("") }
     var dailyGoal by remember { mutableStateOf("") }
     var voice by remember { mutableStateOf(true) }
-    var saved by remember { mutableStateOf(false) }
 
     val blacklist by viewModel.blacklist.collectAsStateWithLifecycle()
     var newKeyword by remember { mutableStateOf("") }
@@ -82,48 +86,53 @@ fun SettingsScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            "Configurações do motorista",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
+        Text("Ajustes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
-        SectionTitle("Custos")
-        NumberField("Preço do combustível (R$/litro)", fuelPrice) { fuelPrice = it; saved = false }
-        NumberField("Consumo médio (km/litro)", kmPerLiter) { kmPerLiter = it; saved = false }
-        NumberField("Manutenção (R$/km)", maintenance) { maintenance = it; saved = false }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Custo estimado por km", style = MaterialTheme.typography.labelMedium)
+        Group("Custos do veículo") {
+            NumberField("Combustível (R$/litro)", fuelPrice) { fuelPrice = it }
+            NumberField("Consumo (km/litro)", kmPerLiter) { kmPerLiter = it }
+            NumberField("Manutenção (R$/km)", maintenance) { maintenance = it }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Custo estimado por km", style = MaterialTheme.typography.bodyMedium)
                 Text(
                     UiFormat.money(previewCostPerKm),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
 
-        SectionTitle("Metas de rentabilidade (R$/km)")
-        NumberField("Meta — verde a partir de", target) { target = it; saved = false }
-        NumberField("Mínimo — vermelho abaixo de", minimum) { minimum = it; saved = false }
+        Group("Metas") {
+            NumberField("Verde a partir de (R$/km)", target) { target = it }
+            NumberField("Vermelho abaixo de (R$/km)", minimum) { minimum = it }
+            NumberField("Mínimo por hora p/ verde (R$/h)", targetHour) { targetHour = it }
+            NumberField("Meta de ganho diário (R$)", dailyGoal) { dailyGoal = it }
+        }
 
-        SectionTitle("Meta de ganho por hora (R$/h)")
-        NumberField("Mínimo p/ verde — abaixo disso vira amarela", targetHour) { targetHour = it; saved = false }
-
-        SectionTitle("Meta diária (R$)")
-        NumberField("Quanto você quer ganhar por dia", dailyGoal) { dailyGoal = it; saved = false }
-
-        SectionTitle("Voz")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Anunciar corridas por voz")
-            Switch(checked = voice, onCheckedChange = { voice = it; saved = false })
+        Group("Voz") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Anunciar corridas por voz", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Fala a classificação e o lucro de cada corrida.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = voice, onCheckedChange = { voice = it })
+            }
         }
 
         Button(
@@ -140,136 +149,134 @@ fun SettingsScreen(
                         voiceEnabled = voice,
                     ),
                 )
-                saved = true
                 onMessage("Configurações salvas")
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Salvar")
+            Text("Salvar alterações")
         }
 
-        if (saved) {
+        Group("Zonas de risco") {
             Text(
-                "Configurações salvas.",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                "Se o destino contiver uma destas palavras, a corrida é marcada como área de risco e avisada por voz — ignorando o cálculo de lucro.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-
-        SectionTitle("Zonas de risco")
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = newKeyword,
+                    onValueChange = { newKeyword = it },
+                    label = { Text("Ex: Complexo") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = {
+                        val keyword = newKeyword.trim()
+                        if (keyword.isNotEmpty()) {
+                            viewModel.addKeyword(keyword)
+                            newKeyword = ""
+                            onMessage("Zona de risco adicionada")
+                        }
+                    },
+                ) {
+                    Text("Adicionar")
+                }
+            }
+            if (blacklist.isEmpty()) {
                 Text(
-                    "Se o destino da corrida contiver uma destas palavras, o app marca a corrida como área de risco e avisa por voz — ignorando o cálculo de lucro.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Nenhuma zona cadastrada.",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedTextField(
-                        value = newKeyword,
-                        onValueChange = { newKeyword = it },
-                        label = { Text("Palavra-chave (ex: Complexo)") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Button(
-                        onClick = {
-                            val keyword = newKeyword.trim()
-                            if (keyword.isNotEmpty()) {
-                                viewModel.addKeyword(keyword)
-                                newKeyword = ""
-                                onMessage("Zona de risco adicionada")
-                            }
-                        },
+            } else {
+                blacklist.forEach { keyword ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Adicionar")
-                    }
-                }
-                if (blacklist.isEmpty()) {
-                    Text(
-                        "Nenhuma zona de risco cadastrada.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    blacklist.forEach { keyword ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(keyword, modifier = Modifier.weight(1f))
-                            IconButton(onClick = { viewModel.removeKeyword(keyword) }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Remover $keyword")
-                            }
+                        Text(keyword, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { viewModel.removeKeyword(keyword) }) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Remover $keyword",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
             }
         }
 
-        SectionTitle("Depuração do parser")
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Group("Depuração do parser") {
+            Text(
+                "Quando a leitura de uma corrida falha, o app salva um \"dump\" da tela para ajudar a ajustar o parser.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text("Dumps salvos: $dumpCount", style = MaterialTheme.typography.labelLarge)
+            OutlinedButton(
+                onClick = {
+                    RideAccessibilityService.requestDump()
+                    dumpRequested = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Gerar dump da próxima tela")
+            }
+            if (dumpRequested) {
                 Text(
-                    "Quando a leitura de uma corrida falha, o app salva um \"dump\" da tela (texto) no armazenamento interno para ajudar a ajustar o parser.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    "Abra o app de corrida: a próxima tela será salva.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    "Dumps salvos: $dumpCount",
-                    style = MaterialTheme.typography.labelMedium,
-                )
-                OutlinedButton(
-                    onClick = {
-                        RideAccessibilityService.requestDump()
-                        dumpRequested = true
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Gerar dump da próxima tela")
-                }
-                if (dumpRequested) {
-                    Text(
-                        "Abra o app de corrida: a próxima tela será salva como dump.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                OutlinedButton(
-                    onClick = {
-                        ParserDumpStore.clear(context)
-                        dumpCount = 0
-                        dumpRequested = false
-                        onMessage("Dumps apagados")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Limpar dumps")
-                }
+            }
+            OutlinedButton(
+                onClick = {
+                    ParserDumpStore.clear(context)
+                    dumpCount = 0
+                    dumpRequested = false
+                    onMessage("Dumps apagados")
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Limpar dumps")
             }
         }
 
-        SectionTitle("Conta")
+        SectionLabel("Conta")
         OutlinedButton(
             onClick = onLogout,
             modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                contentColor = StatusDanger,
+            ),
         ) {
+            Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+            androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
             Text("Sair da conta")
         }
     }
 }
 
+/** A labelled card grouping related settings. */
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun Group(title: String, content: @Composable () -> Unit) {
+    Column {
+        SectionLabel(title)
+        androidx.compose.foundation.layout.Spacer(Modifier.size(6.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                content()
+            }
+        }
+    }
 }
 
 @Composable
