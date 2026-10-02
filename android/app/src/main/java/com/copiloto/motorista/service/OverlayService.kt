@@ -192,6 +192,7 @@ class OverlayService : Service() {
             pickup = getStringExtra(EXTRA_PICKUP),
             dropoff = getStringExtra(EXTRA_DROPOFF),
             rawText = getStringExtra(EXTRA_RAW),
+            sourceLabel = getStringExtra(EXTRA_SOURCE_LABEL),
         )
     }
 
@@ -215,6 +216,7 @@ class OverlayService : Service() {
         const val ACTION_STOP = "com.copiloto.motorista.STOP_OVERLAY"
 
         private const val EXTRA_SOURCE = "source"
+        private const val EXTRA_SOURCE_LABEL = "source_label"
         private const val EXTRA_PRICE = "price"
         private const val EXTRA_DISTANCE = "distance"
         private const val EXTRA_MINUTES = "minutes"
@@ -227,6 +229,7 @@ class OverlayService : Service() {
             Intent(context, OverlayService::class.java).apply {
                 action = ACTION_SHOW_OFFER
                 putExtra(EXTRA_SOURCE, offer.source.name)
+                putExtra(EXTRA_SOURCE_LABEL, offer.sourceLabel)
                 putExtra(EXTRA_PRICE, offer.grossPrice)
                 putExtra(EXTRA_DISTANCE, offer.distanceKm)
                 putExtra(EXTRA_MINUTES, offer.timeMinutes)

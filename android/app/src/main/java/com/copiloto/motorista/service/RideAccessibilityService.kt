@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.copiloto.motorista.CopilotoApp
 import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.engine.RideParser
@@ -11,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,6 +35,27 @@ class RideAccessibilityService : AccessibilityService() {
     private var lastEmittedAt = 0L
     private var lastDumpAt = 0L
 
+    /**
+     * Packages the driver wants read, mapped to the label to display. Kept in
+     * sync with [com.copiloto.motorista.data.settings.MonitoredAppsStore] so the
+     * allow-list is user-configurable (built-ins + apps the driver added). The
+     * XML config no longer restricts packages; this map is the gate.
+     */
+    @Volatile
+    private var monitored: Map<String, String> = RideSource.BUILT_INS.associate {
+        it.packageName!! to it.displayName
+    }
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        ioScope.launch {
+            runCatching {
+                (application as CopilotoApp).container.monitoredAppsStore.monitoredLabels
+                    .collectLatest { monitored = it }
+            }
+        }
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
@@ -42,8 +65,11 @@ class RideAccessibilityService : AccessibilityService() {
         }
 
         val packageName = event.packageName?.toString() ?: return
-        val source = RideSource.fromPackage(packageName)
-        if (source == RideSource.UNKNOWN) return
+        val label = monitored[packageName] ?: return
+        val builtIn = RideSource.fromPackage(packageName)
+        // Built-ins keep their enum source; a driver-added app uses OTHER + its label.
+        val source = if (builtIn != RideSource.UNKNOWN) builtIn else RideSource.OTHER
+        val customLabel = if (builtIn == RideSource.UNKNOWN) label else null
 
         val root = rootInActiveWindow ?: return
         val texts = mutableListOf<String>()
@@ -56,7 +82,8 @@ class RideAccessibilityService : AccessibilityService() {
 
         if (texts.isEmpty()) return
 
-        val offer = RideParser.parse(texts, source)
+        val parsed = RideParser.parse(texts, source)
+        val offer = parsed?.copy(sourceLabel = customLabel)
         if (offer == null || !offer.isComplete) {
             // Parser failed on a transport screen — save a dump for later analysis.
             maybeDumpOnFailure(root, source)

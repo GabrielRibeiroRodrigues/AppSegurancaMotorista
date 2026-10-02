@@ -1,11 +1,13 @@
 package com.copiloto.motorista.ui
 
 import android.app.Application
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.copiloto.motorista.CopilotoApp
 import com.copiloto.motorista.data.local.RideHistoryEntity
 import com.copiloto.motorista.data.model.DriverProfile
+import com.copiloto.motorista.data.model.MonitoredApp
 import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.data.repository.toDto
@@ -13,10 +15,12 @@ import com.copiloto.motorista.service.OverlayService
 import com.copiloto.motorista.service.PanicService
 import com.copiloto.motorista.service.StreamingService
 import com.copiloto.motorista.sync.SyncScheduler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,6 +61,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeKeyword(keyword: String) {
         viewModelScope.launch { container.riskZoneRepository.remove(keyword) }
+    }
+
+    // --- Monitored apps (which rideshare/delivery apps the Copiloto reads) ---
+
+    /** Apps the driver added on top of the built-in Uber/99/inDrive. */
+    val monitoredApps: StateFlow<List<MonitoredApp>> = container.monitoredAppsStore.extraApps
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun addMonitoredApp(app: MonitoredApp) {
+        viewModelScope.launch { container.monitoredAppsStore.add(app) }
+    }
+
+    fun removeMonitoredApp(packageName: String) {
+        viewModelScope.launch { container.monitoredAppsStore.remove(packageName) }
+    }
+
+    /** Lists the installed launchable apps (off the main thread) for the picker. */
+    fun loadInstalledApps(onResult: (List<MonitoredApp>) -> Unit) {
+        viewModelScope.launch {
+            val apps = withContext(Dispatchers.IO) {
+                val pm = getApplication<Application>().packageManager
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                val self = getApplication<Application>().packageName
+                runCatching {
+                    pm.queryIntentActivities(intent, 0)
+                        .map { MonitoredApp(it.activityInfo.packageName, it.loadLabel(pm).toString()) }
+                        .filter { it.packageName != self }
+                        .distinctBy { it.packageName }
+                        .sortedBy { it.label.lowercase() }
+                }.getOrDefault(emptyList())
+            }
+            onResult(apps)
+        }
     }
 
     // --- Protection mode (DesafioMaker — panic) ---

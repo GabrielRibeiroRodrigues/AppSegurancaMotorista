@@ -82,5 +82,5 @@ On Android, `TokenStore` (DataStore) holds the access/refresh tokens. `AuthInter
 
 ## Conventions
 - Portuguese (pt-BR) is the user-facing language (UI strings, TTS phrases, currency `R$`). Code identifiers and comments are English.
-- The three special Android permissions (overlay, accessibility, foreground-service) are checked at runtime in `ui/PermissionUtils.kt` and surfaced on the Home screen; the accessibility package allow-list lives in `res/xml/accessibility_service_config.xml` **and** is re-checked in `RideAccessibilityService`.
-- When adding a monitored rideshare app, update both the XML config and `RideSource`.
+- The three special Android permissions (overlay, accessibility, foreground-service) are checked at runtime in `ui/PermissionUtils.kt` and surfaced on the Home screen.
+- **Monitored apps are user-configurable.** `accessibility_service_config.xml` no longer restricts `packageNames`; the allow-list is built at runtime in `RideAccessibilityService` from `RideSource.BUILT_INS` (Uber/99/inDrive) plus the driver's picks in `MonitoredAppsStore` (DataStore). The driver adds apps in **Ajustes → Apps monitorados** (picker reads installed launchable apps via the manifest `<queries>`). A driver-added app parses with the same generic heuristics under `RideSource.OTHER`, carrying its label in `RideOffer.sourceLabel` so the overlay/history show the real name. To add a *built-in* default, extend `RideSource.BUILT_INS`.

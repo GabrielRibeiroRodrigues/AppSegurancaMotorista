@@ -8,7 +8,9 @@ import java.time.Instant
 /** Converts an engine [RideEvaluation] into a persistable row. */
 fun RideEvaluation.toEntity(accepted: Boolean, createdAt: Long = System.currentTimeMillis()) =
     RideHistoryEntity(
-        source = offer.source.name,
+        // Store the custom app label when present so history shows the real name;
+        // sourceName() in the UI falls back to the raw string for non-enum values.
+        source = offer.sourceLabel?.takeIf { it.isNotBlank() } ?: offer.source.name,
         grossPrice = offer.grossPrice,
         distanceKm = offer.distanceKm,
         timeMinutes = offer.timeMinutes,

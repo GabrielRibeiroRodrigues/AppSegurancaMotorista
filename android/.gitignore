@@ -10,3 +10,6 @@ build/
 *.apk
 *.aab
 *.keystore
+
+# Kotlin incremental compile session files
+.kotlin/

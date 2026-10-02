@@ -7,12 +7,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -23,6 +27,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.copiloto.motorista.data.model.DriverProfile
+import com.copiloto.motorista.data.model.MonitoredApp
 import com.copiloto.motorista.service.ParserDumpStore
 import com.copiloto.motorista.service.RideAccessibilityService
 import com.copiloto.motorista.ui.MainViewModel
@@ -66,6 +72,10 @@ fun SettingsScreen(
 
     val blacklist by viewModel.blacklist.collectAsStateWithLifecycle()
     var newKeyword by remember { mutableStateOf("") }
+
+    val monitoredApps by viewModel.monitoredApps.collectAsStateWithLifecycle()
+    var showAppPicker by remember { mutableStateOf(false) }
+    var installedApps by remember { mutableStateOf<List<MonitoredApp>?>(null) }
 
     val triggerPhrase by viewModel.triggerPhrase.collectAsStateWithLifecycle()
     var phraseField by remember { mutableStateOf("") }
@@ -184,6 +194,62 @@ fun SettingsScreen(
             }
         }
 
+        Group("Apps monitorados") {
+            Text(
+                "O Copiloto já lê Uber, 99 e inDrive. Adicione outros apps de corrida ou entrega (ex: Uby Muzambinho) para ler as ofertas deles também.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // Built-ins are always on.
+            listOf("Uber", "99", "inDrive").forEach { name ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(name, modifier = Modifier.weight(1f))
+                    Text(
+                        "Padrão",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (monitoredApps.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                monitoredApps.forEach { app ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(app.label, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                app.packageName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(onClick = { viewModel.removeMonitoredApp(app.packageName) }) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Remover ${app.label}",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+            OutlinedButton(
+                onClick = {
+                    installedApps = null
+                    showAppPicker = true
+                    viewModel.loadInstalledApps { installedApps = it }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                Text("Adicionar app")
+            }
+        }
+
         Group("Zonas de risco") {
             Text(
                 "Se o destino contiver uma destas palavras, a corrida é marcada como área de risco e avisada por voz — ignorando o cálculo de lucro.",
@@ -288,6 +354,71 @@ fun SettingsScreen(
             Text("Sair da conta")
         }
     }
+
+    if (showAppPicker) {
+        val alreadyMonitored = monitoredApps.map { it.packageName }.toSet()
+        AppPickerDialog(
+            apps = installedApps,
+            excluded = alreadyMonitored,
+            onPick = { app ->
+                viewModel.addMonitoredApp(app)
+                showAppPicker = false
+                onMessage("${app.label} adicionado")
+            },
+            onDismiss = { showAppPicker = false },
+        )
+    }
+}
+
+/** Dialog listing installed apps so the driver can add one to the monitored list. */
+@Composable
+private fun AppPickerDialog(
+    apps: List<MonitoredApp>?,
+    excluded: Set<String>,
+    onPick: (MonitoredApp) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Fechar") } },
+        title = { Text("Escolha um app") },
+        text = {
+            when {
+                apps == null -> Text("Carregando apps instalados…")
+                else -> {
+                    val options = apps.filter { it.packageName !in excluded }
+                    if (options.isEmpty()) {
+                        Text("Nenhum app disponível para adicionar.")
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 360.dp)
+                                .verticalScroll(rememberScrollState()),
+                        ) {
+                            options.forEach { app ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onPick(app) }
+                                        .padding(vertical = 10.dp),
+                                ) {
+                                    Text(app.label, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        app.packageName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 /** A labelled card grouping related settings. */

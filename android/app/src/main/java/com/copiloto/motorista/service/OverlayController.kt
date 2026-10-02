@@ -75,7 +75,7 @@ class OverlayController(private val context: Context) {
             text = classificationLabel(evaluation.classification)
             setTextColor(color)
         }
-        view.findViewById<TextView>(R.id.source_label).text = evaluation.offer.source.displayName
+        view.findViewById<TextView>(R.id.source_label).text = evaluation.offer.displayLabel
 
         view.findViewById<TextView>(R.id.net_profit).apply {
             text = currency.format(evaluation.netProfit)
