@@ -21,6 +21,8 @@ data class RideHistoryEntity(
     val netProfit: Double,
     val classification: String,
     val accepted: Boolean,
+    val pickup: String = "",
+    val dropoff: String = "",
     val createdAt: Long,
     val synced: Boolean = false,
     val remoteId: Long? = null,

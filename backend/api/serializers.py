@@ -54,6 +54,8 @@ class RideHistorySerializer(serializers.ModelSerializer):
             "gross_per_hour",
             "classification",
             "accepted",
+            "pickup",
+            "dropoff",
             "captured_at",
         ]
         read_only_fields = ["id"]

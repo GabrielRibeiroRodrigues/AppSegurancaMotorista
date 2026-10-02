@@ -14,5 +14,7 @@ data class RideHistoryDto(
     @Json(name = "gross_per_hour") val grossPerHour: Double,
     @Json(name = "classification") val classification: String,
     @Json(name = "accepted") val accepted: Boolean,
+    @Json(name = "pickup") val pickup: String = "",
+    @Json(name = "dropoff") val dropoff: String = "",
     @Json(name = "captured_at") val capturedAt: String,
 )

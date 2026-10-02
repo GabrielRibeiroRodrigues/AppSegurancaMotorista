@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [RideHistoryEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class CopilotoDatabase : RoomDatabase() {

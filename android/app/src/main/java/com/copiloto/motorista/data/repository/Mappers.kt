@@ -19,6 +19,8 @@ fun RideEvaluation.toEntity(accepted: Boolean, createdAt: Long = System.currentT
         netProfit = netProfit,
         classification = classification.name,
         accepted = accepted,
+        pickup = offer.pickup.orEmpty(),
+        dropoff = offer.dropoff.orEmpty(),
         createdAt = createdAt,
     )
 
@@ -35,5 +37,7 @@ fun RideHistoryEntity.toDto() = RideHistoryDto(
     grossPerHour = grossPerHour.round2(),
     classification = classification,
     accepted = accepted,
+    pickup = pickup,
+    dropoff = dropoff,
     capturedAt = Instant.ofEpochMilli(createdAt).toString(),
 )

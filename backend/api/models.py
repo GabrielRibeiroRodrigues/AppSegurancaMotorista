@@ -59,6 +59,8 @@ class RideHistory(models.Model):
     gross_per_hour = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     classification = models.CharField(max_length=8, choices=Classification.choices)
     accepted = models.BooleanField(default=False)
+    pickup = models.CharField(max_length=240, blank=True, default="")
+    dropoff = models.CharField(max_length=240, blank=True, default="")
     captured_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
