@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { OperatorActionType } from '@panic/shared';
 import { useAlerts } from './useAlerts';
 import { AlertCard } from './components/AlertCard';
 import { StatsBar } from './components/StatsBar';
+import { LoginScreen } from './components/LoginScreen';
 import { ShieldIcon, InboxIcon } from './components/icons';
 import { sendOperatorAction } from './api';
+import { fetchMe, isLoggedIn, logout, type OperatorInfo } from './auth';
 
 function useSecondsSince(date: Date | null): number {
   const [, force] = useState(0);
@@ -16,7 +18,46 @@ function useSecondsSince(date: Date | null): number {
 }
 
 export default function App() {
-  const { alerts, lastUpdated, connected, refetch } = useAlerts();
+  // null = still checking the stored session; then either an operator or not.
+  const [operator, setOperator] = useState<OperatorInfo | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (isLoggedIn()) {
+        const me = await fetchMe();
+        if (!cancelled && me?.is_operator) setOperator(me);
+      }
+      if (!cancelled) setChecking(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    await logout();
+    setOperator(null);
+  }, []);
+
+  if (checking) {
+    return <div className="min-h-screen bg-[#05070d]" />;
+  }
+  if (!operator) {
+    return <LoginScreen onLoggedIn={setOperator} />;
+  }
+  return <Dashboard operator={operator} onSignOut={handleSignOut} />;
+}
+
+function Dashboard({
+  operator,
+  onSignOut,
+}: {
+  operator: OperatorInfo;
+  onSignOut: () => void;
+}) {
+  const { alerts, lastUpdated, connected, refetch } = useAlerts(true, onSignOut);
   const secondsSinceUpdate = useSecondsSince(lastUpdated);
 
   async function handleAction(alertId: string, action: OperatorActionType) {
@@ -45,6 +86,15 @@ export default function App() {
                   : 'Sem conexão com o servidor'}
               </p>
             </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-xs text-slate-500 sm:inline">{operator.username}</span>
+            <button
+              onClick={onSignOut}
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5"
+            >
+              Sair
+            </button>
           </div>
         </div>
       </header>

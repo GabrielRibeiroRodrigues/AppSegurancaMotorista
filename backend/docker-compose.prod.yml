@@ -36,6 +36,9 @@ services:
   # Sinalização WebRTC do vídeo ao vivo (Central de Operações).
   signaling:
     build: ../signaling
+    environment:
+      # Mesmo segredo do Django para validar o JWT das conexões (só operador assiste).
+      SIGNALING_JWT_SECRET: ${DJANGO_SECRET_KEY:?defina DJANGO_SECRET_KEY no .env}
     ports:
       - "${SIGNALING_PORT:-4001}:4001"
     restart: unless-stopped

@@ -1,11 +1,11 @@
 import type { Alert, OperatorActionType } from '@panic/shared';
+import { authFetch } from './auth';
 
-// Backend Django do Copiloto. Em dev aponta pro emulador/host; em produção,
-// defina VITE_SERVER_URL com a URL pública da VPS (ex.: http://SEU_IP:8000).
-const API_URL = import.meta.env.VITE_SERVER_URL ?? 'http://localhost:8000';
+// Alerts are operator-only now, so every call goes through authFetch (bearer token
+// + refresh on 401). Configure the backend URL with VITE_SERVER_URL in production.
 
 export async function fetchAlerts(): Promise<Alert[]> {
-  const res = await fetch(`${API_URL}/api/alerts/`);
+  const res = await authFetch('/api/alerts/');
   if (!res.ok) throw new Error('falha ao buscar alertas');
   return res.json();
 }
@@ -14,7 +14,7 @@ export async function sendOperatorAction(
   alertId: string,
   operatorAction: OperatorActionType,
 ): Promise<Alert> {
-  const res = await fetch(`${API_URL}/api/alerts/${alertId}/`, {
+  const res = await authFetch(`/api/alerts/${alertId}/`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     // O Django espera snake_case.

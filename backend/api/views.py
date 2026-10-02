@@ -10,18 +10,20 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import DriverProfile, PanicAlert, RideHistory
 from .permissions import IsOperator
 from .serializers import (
+    CopilotoTokenObtainPairSerializer,
     DriverProfileSerializer,
     PanicAlertCreateSerializer,
     PanicAlertSerializer,
     PanicAlertUpdateSerializer,
     RegisterSerializer,
     RideHistorySerializer,
+    add_claims,
 )
 
 
 def tokens_for(user) -> dict:
     """Builds an access/refresh pair for a user (Module 3 — JWT auth)."""
-    refresh = RefreshToken.for_user(user)
+    refresh = add_claims(RefreshToken.for_user(user), user)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
@@ -46,6 +48,7 @@ class LoginView(TokenObtainPairView):
     """JWT login, rate-limited to slow down credential stuffing."""
 
     throttle_scope = "auth"
+    serializer_class = CopilotoTokenObtainPairSerializer
 
 
 class RegisterView(APIView):

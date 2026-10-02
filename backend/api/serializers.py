@@ -1,8 +1,25 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import DriverProfile, PanicAlert, RideHistory
+
+
+def add_claims(token, user):
+    """Embeds identity + role in the JWT so the signaling server can authorize
+    WebRTC connections (only operators may watch) without a DB lookup."""
+    token["username"] = user.username
+    token["is_staff"] = bool(user.is_staff)
+    return token
+
+
+class CopilotoTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Login token with the extra claims used by the signaling server."""
+
+    @classmethod
+    def get_token(cls, user):
+        return add_claims(super().get_token(user), user)
 
 
 class RegisterSerializer(serializers.ModelSerializer):

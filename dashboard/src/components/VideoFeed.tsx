@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { VideoOffIcon } from './icons';
+import { getAccessToken } from '../auth';
 
 interface VideoFeedProps {
   alertId: string;
@@ -13,10 +14,28 @@ const SIGNALING_URL =
   `${API_URL.replace(/^http/, 'ws').replace(/:\d+$/, '')}:4001/signaling`;
 const CONNECT_TIMEOUT_MS = 10000;
 
+// STUN descobre o IP público; TURN é o relay para quando o P2P direto não fecha
+// (comum em 4G/NAT simétrico). Configure VITE_TURN_URL/USERNAME/CREDENTIAL em produção.
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
+const TURN_URL = import.meta.env.VITE_TURN_URL;
+if (TURN_URL) {
+  ICE_SERVERS.push({
+    urls: TURN_URL,
+    username: import.meta.env.VITE_TURN_USERNAME,
+    credential: import.meta.env.VITE_TURN_CREDENTIAL,
+  });
+}
+
+/** Signaling URL with the operator's access token (server only lets operators watch). */
+function signalingUrlWithToken(): string {
+  const token = getAccessToken();
+  if (!token) return SIGNALING_URL;
+  const sep = SIGNALING_URL.includes('?') ? '&' : '?';
+  return `${SIGNALING_URL}${sep}token=${encodeURIComponent(token)}`;
+}
 
 type FeedStatus = 'connecting' | 'live' | 'unavailable' | 'ended';
 
@@ -30,7 +49,7 @@ export function VideoFeed({ alertId }: VideoFeedProps) {
   useEffect(() => {
     let cancelled = false;
     let pc: RTCPeerConnection | null = null;
-    const socket = new WebSocket(SIGNALING_URL);
+    const socket = new WebSocket(signalingUrlWithToken());
 
     const timeout = window.setTimeout(() => {
       if (!cancelled && status !== 'live') setStatus('unavailable');

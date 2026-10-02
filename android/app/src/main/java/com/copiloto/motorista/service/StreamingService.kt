@@ -15,9 +15,12 @@ import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.copiloto.motorista.BuildConfig
+import com.copiloto.motorista.CopilotoApp
 import com.copiloto.motorista.R
 import com.copiloto.motorista.service.webrtc.WebRtcBroadcaster
 import com.copiloto.motorista.ui.MainActivity
+import kotlinx.coroutines.runBlocking
+import java.net.URLEncoder
 
 /**
  * Streams the driver's camera + microphone to the Central de Operações while an
@@ -42,13 +45,26 @@ class StreamingService : Service() {
         }
         startForegroundSafely()
         if (broadcaster == null) {
-            broadcaster = WebRtcBroadcaster(applicationContext, BuildConfig.SIGNALING_URL, alertId).also {
+            // The signaling server requires the driver's JWT to authenticate the feed.
+            val url = signalingUrlWithToken()
+            broadcaster = WebRtcBroadcaster(applicationContext, url, alertId).also {
                 runCatching { it.start() }
             }
             isRunning = true
             handler.postDelayed(autoStop, MAX_DURATION_MS)
         }
         return START_REDELIVER_INTENT
+    }
+
+    /** Appends the access token to the signaling URL as `?token=…` (operator check server-side). */
+    private fun signalingUrlWithToken(): String {
+        val base = BuildConfig.SIGNALING_URL
+        val token = runCatching {
+            runBlocking { (application as CopilotoApp).container.tokenStore.accessToken() }
+        }.getOrNull()
+        if (token.isNullOrEmpty()) return base
+        val sep = if (base.contains('?')) '&' else '?'
+        return "$base${sep}token=${URLEncoder.encode(token, "UTF-8")}"
     }
 
     private fun stopEverything() {

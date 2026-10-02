@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Alert } from '@panic/shared';
 import { fetchAlerts } from './api';
+import { AuthError } from './auth';
 import { playAlertSound } from './alertSound';
 
 const POLL_INTERVAL_MS = 3000;
 
-export function useAlerts() {
+export function useAlerts(enabled: boolean, onAuthError: () => void) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [connected, setConnected] = useState(true);
@@ -25,6 +26,7 @@ export function useAlerts() {
   }
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     async function poll() {
@@ -37,6 +39,10 @@ export function useAlerts() {
           setConnected(true);
         }
       } catch (err) {
+        if (err instanceof AuthError) {
+          if (!cancelled) onAuthError();
+          return;
+        }
         console.error('[dashboard] erro ao buscar alertas', err);
         if (!cancelled) setConnected(false);
       }
@@ -48,7 +54,7 @@ export function useAlerts() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [enabled, onAuthError]);
 
   return {
     alerts,
