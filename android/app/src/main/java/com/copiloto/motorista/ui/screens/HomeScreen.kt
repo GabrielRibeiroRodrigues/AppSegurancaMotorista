@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
@@ -35,6 +36,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -74,6 +76,18 @@ import com.copiloto.motorista.ui.theme.StatusWarning
 fun HomeScreen(viewModel: MainViewModel, onMessage: (String) -> Unit = {}) {
     val context = LocalContext.current
     val history by viewModel.history.collectAsStateWithLifecycle()
+    val protectionEnabled by viewModel.protectionEnabled.collectAsStateWithLifecycle()
+
+    val protectionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result ->
+        if (result[Manifest.permission.RECORD_AUDIO] == true) {
+            viewModel.setProtection(true)
+            onMessage("Modo proteção ativado")
+        } else {
+            onMessage("Permissão de microfone necessária")
+        }
+    }
 
     var canOverlay by remember { mutableStateOf(PermissionUtils.canDrawOverlays(context)) }
     var accessibilityOn by remember { mutableStateOf(PermissionUtils.isAccessibilityEnabled(context)) }
@@ -173,6 +187,33 @@ fun HomeScreen(viewModel: MainViewModel, onMessage: (String) -> Unit = {}) {
                 valueColor = StatusPositive,
             )
         }
+
+        // Protection mode (panic)
+        SectionLabel("Proteção")
+        ProtectionCard(
+            enabled = protectionEnabled,
+            onToggle = { want ->
+                if (want) {
+                    if (hasProtectionPermissions(context)) {
+                        viewModel.setProtection(true)
+                        onMessage("Modo proteção ativado")
+                    } else {
+                        protectionLauncher.launch(protectionPermissions())
+                    }
+                } else {
+                    viewModel.setProtection(false)
+                    onMessage("Modo proteção desativado")
+                }
+            },
+            onTest = {
+                viewModel.sendTestAlert { sent ->
+                    onMessage(
+                        if (sent) "Alerta de teste enviado à central"
+                        else "Sem internet — alerta na fila, será reenviado",
+                    )
+                }
+            },
+        )
 
         // Dashcam
         SectionLabel("Segurança")
@@ -301,6 +342,42 @@ private fun HeroCard(
 }
 
 @Composable
+private fun ProtectionCard(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onTest: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                val tint = if (enabled) StatusPositive else MaterialTheme.colorScheme.primary
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(tint.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Shield, contentDescription = null, tint = tint)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Modo proteção", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (enabled) "Escutando a frase-gatilho" else "Aciona a central numa emergência",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (enabled) StatusPositive else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = onToggle)
+            }
+            OutlinedButton(onClick = onTest, modifier = Modifier.fillMaxWidth()) {
+                Text("Enviar alerta de teste")
+            }
+        }
+    }
+}
+
+@Composable
 private fun DashcamCard(recording: Boolean, onToggle: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -361,4 +438,20 @@ private fun dashcamPermissions(): Array<String> {
     } else {
         base.toTypedArray()
     }
+}
+
+/** Protection needs the microphone (voice trigger); location/notifications ride along. */
+private fun hasProtectionPermissions(context: android.content.Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+        PackageManager.PERMISSION_GRANTED
+
+private fun protectionPermissions(): Array<String> {
+    val base = mutableListOf(
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+    )
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        base += Manifest.permission.POST_NOTIFICATIONS
+    }
+    return base.toTypedArray()
 }

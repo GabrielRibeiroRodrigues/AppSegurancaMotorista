@@ -1,5 +1,7 @@
 package com.copiloto.motorista.data.remote
 
+import com.copiloto.motorista.data.remote.dto.AlertResponse
+import com.copiloto.motorista.data.remote.dto.CreateAlertRequest
 import com.copiloto.motorista.data.remote.dto.DriverProfileDto
 import com.copiloto.motorista.data.remote.dto.LoginRequest
 import com.copiloto.motorista.data.remote.dto.RefreshRequest
@@ -40,4 +42,7 @@ interface CopilotoApi {
 
     @PUT("api/profile/")
     suspend fun updateProfile(@Body profile: DriverProfileDto): DriverProfileDto
+
+    @POST("api/alerts/")
+    suspend fun createAlert(@Body body: CreateAlertRequest): AlertResponse
 }

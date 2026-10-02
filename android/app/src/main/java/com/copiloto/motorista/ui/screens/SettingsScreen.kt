@@ -67,6 +67,10 @@ fun SettingsScreen(
     val blacklist by viewModel.blacklist.collectAsStateWithLifecycle()
     var newKeyword by remember { mutableStateOf("") }
 
+    val triggerPhrase by viewModel.triggerPhrase.collectAsStateWithLifecycle()
+    var phraseField by remember { mutableStateOf("") }
+    LaunchedEffect(triggerPhrase) { if (phraseField.isEmpty()) phraseField = triggerPhrase }
+
     // Populate the fields once the stored profile is loaded.
     LaunchedEffect(profile) {
         fuelPrice = profile.fuelPricePerLiter.toString()
@@ -154,6 +158,30 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Salvar alterações")
+        }
+
+        Group("Proteção") {
+            Text(
+                "Frase que, dita em voz alta com o modo proteção ligado, dispara um alerta silencioso para a central.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = phraseField,
+                onValueChange = { phraseField = it },
+                label = { Text("Frase-gatilho") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = {
+                    viewModel.setTriggerPhrase(phraseField)
+                    onMessage("Frase-gatilho salva")
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Salvar frase")
+            }
         }
 
         Group("Zonas de risco") {

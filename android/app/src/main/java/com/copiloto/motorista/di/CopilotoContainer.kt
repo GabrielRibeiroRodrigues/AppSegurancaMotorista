@@ -5,9 +5,11 @@ import com.copiloto.motorista.data.local.CopilotoDatabase
 import com.copiloto.motorista.data.remote.CopilotoApi
 import com.copiloto.motorista.data.remote.NetworkModule
 import com.copiloto.motorista.data.repository.AuthRepository
+import com.copiloto.motorista.data.repository.PanicRepository
 import com.copiloto.motorista.data.repository.RideHistoryRepository
 import com.copiloto.motorista.data.settings.DriverProfileRepository
 import com.copiloto.motorista.data.settings.OnboardingStore
+import com.copiloto.motorista.data.settings.PanicStore
 import com.copiloto.motorista.data.settings.RiskZoneRepository
 import com.copiloto.motorista.data.settings.TokenStore
 
@@ -33,6 +35,12 @@ class CopilotoContainer(context: Context) {
     val onboardingStore: OnboardingStore by lazy { OnboardingStore(appContext) }
 
     val riskZoneRepository: RiskZoneRepository by lazy { RiskZoneRepository(appContext) }
+
+    val panicStore: PanicStore by lazy { PanicStore(appContext) }
+
+    val panicRepository: PanicRepository by lazy {
+        PanicRepository(api, database.pendingAlertDao(), appContext)
+    }
 
     val rideHistoryRepository: RideHistoryRepository by lazy {
         RideHistoryRepository(database.rideHistoryDao(), api)

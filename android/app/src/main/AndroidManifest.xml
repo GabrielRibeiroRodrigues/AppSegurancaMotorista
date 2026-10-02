@@ -19,6 +19,10 @@
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
+    <!-- Protection mode (DesafioMaker): location goes with each panic alert. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- Backend synchronization (Module F). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -80,6 +84,12 @@
             android:name=".service.DashcamService"
             android:exported="false"
             android:foregroundServiceType="camera|microphone" />
+
+        <!-- Protection mode (DesafioMaker): listens for the trigger phrase in background. -->
+        <service
+            android:name=".service.PanicService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <!-- Module F: WorkManager default initializer; configuration provided by CopilotoApp. -->
         <provider

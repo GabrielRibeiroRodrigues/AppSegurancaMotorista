@@ -10,6 +10,7 @@ import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
 import com.copiloto.motorista.data.repository.toDto
 import com.copiloto.motorista.service.OverlayService
+import com.copiloto.motorista.service.PanicService
 import com.copiloto.motorista.sync.SyncScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +56,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeKeyword(keyword: String) {
         viewModelScope.launch { container.riskZoneRepository.remove(keyword) }
+    }
+
+    // --- Protection mode (DesafioMaker — panic) ---
+
+    val protectionEnabled: StateFlow<Boolean> = container.panicStore.protectionEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val triggerPhrase: StateFlow<String> = container.panicStore.triggerPhrase
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
+    /** Turns protection on/off: persists the choice and starts/stops the listener. */
+    fun setProtection(enabled: Boolean) {
+        viewModelScope.launch { container.panicStore.setProtectionEnabled(enabled) }
+        val app = getApplication<Application>()
+        if (enabled) PanicService.start(app) else PanicService.stop(app)
+    }
+
+    fun setTriggerPhrase(phrase: String) {
+        viewModelScope.launch { container.panicStore.setPhrase(phrase) }
+    }
+
+    /** Fires a test alert (shown as a test in the Central de Operações). */
+    fun sendTestAlert(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val sent = runCatching {
+                container.panicRepository.fireAlert("Alerta de teste", isTest = true)
+            }.getOrDefault(false)
+            onResult(sent)
+        }
     }
 
     fun saveProfile(profile: DriverProfile) {

@@ -6,13 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [RideHistoryEntity::class],
-    version = 2,
+    entities = [RideHistoryEntity::class, PendingAlertEntity::class],
+    version = 3,
     exportSchema = false,
 )
 abstract class CopilotoDatabase : RoomDatabase() {
 
     abstract fun rideHistoryDao(): RideHistoryDao
+
+    abstract fun pendingAlertDao(): PendingAlertDao
 
     companion object {
         @Volatile

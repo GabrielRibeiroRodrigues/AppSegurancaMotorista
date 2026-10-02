@@ -20,4 +20,10 @@
     <string name="dashcam_notification_title">Gravando viagem</string>
     <string name="dashcam_notification_text">Dashcam de segurança ativo (vídeo e áudio).</string>
     <string name="dashcam_stop_action">Parar</string>
+
+    <!-- Protection mode (DesafioMaker — panic). Kept low-key on purpose. -->
+    <string name="protection_channel_name">Proteção</string>
+    <string name="protection_channel_description">Modo proteção em segundo plano.</string>
+    <string name="protection_notification_title">Copiloto ativo</string>
+    <string name="protection_notification_text">Modo proteção ligado.</string>
 </resources>

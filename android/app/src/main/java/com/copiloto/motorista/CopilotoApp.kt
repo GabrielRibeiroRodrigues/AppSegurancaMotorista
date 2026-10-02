@@ -7,6 +7,7 @@ import androidx.work.Configuration
 import com.copiloto.motorista.di.CopilotoContainer
 import com.copiloto.motorista.service.DashcamService
 import com.copiloto.motorista.service.OverlayService
+import com.copiloto.motorista.service.PanicService
 import com.copiloto.motorista.sync.SyncScheduler
 
 class CopilotoApp : Application(), Configuration.Provider {
@@ -19,6 +20,7 @@ class CopilotoApp : Application(), Configuration.Provider {
         container = CopilotoContainer(this)
         createOverlayNotificationChannel()
         createDashcamNotificationChannel()
+        createProtectionNotificationChannel()
         SyncScheduler.schedulePeriodic(this)
     }
 
@@ -46,6 +48,19 @@ class CopilotoApp : Application(), Configuration.Provider {
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
             description = getString(R.string.dashcam_channel_description)
+            setShowBadge(false)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    private fun createProtectionNotificationChannel() {
+        val manager = getSystemService(NotificationManager::class.java)
+        val channel = NotificationChannel(
+            PanicService.CHANNEL_ID,
+            getString(R.string.protection_channel_name),
+            NotificationManager.IMPORTANCE_MIN,
+        ).apply {
+            description = getString(R.string.protection_channel_description)
             setShowBadge(false)
         }
         manager.createNotificationChannel(channel)
