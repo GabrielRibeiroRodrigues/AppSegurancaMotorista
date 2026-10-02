@@ -1,10 +1,14 @@
+from django.db import connection
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import DriverProfile, PanicAlert, RideHistory
+from .permissions import IsOperator
 from .serializers import (
     DriverProfileSerializer,
     PanicAlertCreateSerializer,
@@ -21,10 +25,34 @@ def tokens_for(user) -> dict:
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
+class HealthView(APIView):
+    """Liveness/readiness probe for monitoring and load balancers."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+
+    def get(self, request):
+        try:
+            connection.ensure_connection()
+            db_ok = True
+        except Exception:
+            db_ok = False
+        return Response({"status": "ok" if db_ok else "degraded", "db": db_ok},
+                        status=200 if db_ok else 503)
+
+
+class LoginView(TokenObtainPairView):
+    """JWT login, rate-limited to slow down credential stuffing."""
+
+    throttle_scope = "auth"
+
+
 class RegisterView(APIView):
     """Creates a driver account and returns a JWT pair."""
 
     permission_classes = [AllowAny]
+    throttle_scope = "auth"
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -34,6 +62,37 @@ class RegisterView(APIView):
             {"user": {"username": user.username, "email": user.email}, **tokens_for(user)},
             status=201,
         )
+
+
+class LogoutView(APIView):
+    """Blacklists the refresh token so logout actually invalidates the session."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get("refresh")
+        if not token:
+            return Response({"detail": "refresh token obrigatório"}, status=400)
+        try:
+            RefreshToken(token).blacklist()
+        except TokenError:
+            # Already expired/blacklisted — the client is logged out either way.
+            pass
+        return Response(status=205)
+
+
+class MeView(APIView):
+    """Identifies the current user and whether they are a Central operator."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "username": user.username,
+            "email": user.email,
+            "is_operator": bool(user.is_staff),
+        })
 
 
 class RideListCreateView(generics.ListCreateAPIView):
@@ -68,11 +127,12 @@ class PanicAlertListCreateView(APIView):
     """GET lists alerts for the Central de Operações; POST fires an alert (driver)."""
 
     def get_permissions(self):
-        # Operators list without a driver login; a driver must be authenticated to fire.
-        # PRODUÇÃO: proteger o GET/PATCH com login/âmbito de operador.
+        # A driver fires an alert (any authenticated user); only Central operators
+        # may list alerts, since the list exposes location + transcript of people
+        # possibly in danger.
         if self.request.method == "POST":
             return [IsAuthenticated()]
-        return [AllowAny()]
+        return [IsOperator()]
 
     def get(self, request):
         alerts = PanicAlert.objects.select_related("driver__user").all()
@@ -89,7 +149,7 @@ class PanicAlertListCreateView(APIView):
 class PanicAlertDetailView(APIView):
     """Operator action on an alert (Central de Operações)."""
 
-    permission_classes = [AllowAny]  # PRODUÇÃO: autenticação de operador.
+    permission_classes = [IsOperator]
 
     def patch(self, request, pk):
         try:

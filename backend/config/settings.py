@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "api",
 ]
@@ -121,6 +122,17 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # Rate limiting: blunts credential stuffing and endpoint abuse.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env("THROTTLE_ANON", default="40/min"),
+        "user": env("THROTTLE_USER", default="240/min"),
+        "auth": env("THROTTLE_AUTH", default="10/min"),  # login + register
+    },
 }
 
 from datetime import timedelta  # noqa: E402
@@ -128,7 +140,20 @@ from datetime import timedelta  # noqa: E402
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    # Refresh rotation + blacklist so a logout (or a used refresh) can't be replayed.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
+
+# --- Production hardening (enabled when SECURE_SSL=True, i.e. behind a TLS proxy) ---
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+if env.bool("SECURE_SSL", default=False):
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=2592000)  # 30 days
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 from corsheaders.defaults import default_headers  # noqa: E402
 
@@ -136,3 +161,11 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 # The mobile client identifies itself with a custom header.
 CORS_ALLOW_HEADERS = list(default_headers) + ["x-device-id"]
+
+# Rate limits would make the test suite flaky (cumulative in-process counters), so
+# disable throttling while running tests.
+import sys  # noqa: E402
+
+if "test" in sys.argv:
+    REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []
+    REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {}

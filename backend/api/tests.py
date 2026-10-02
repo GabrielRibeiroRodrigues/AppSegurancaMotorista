@@ -115,20 +115,44 @@ class PanicAlertTests(APITestCase):
         self.assertEqual(response.data["driverId"], "motorista_alerta")
         self.assertEqual(response.data["location"], {"lat": -21.37, "lng": -46.52})
 
-    def test_list_alerts_is_open_for_operators(self):
+    def test_list_alerts_requires_operator(self):
         self.client.force_authenticate(user=self.user)
         self.client.post("/api/alerts/", self._payload(), format="json")
+
+        # Anonymous: denied.
         self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get("/api/alerts/").status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # A regular driver (not staff): forbidden, even seeing their own alert list.
+        self.client.force_authenticate(user=self.user)
+        self.assertEqual(self.client.get("/api/alerts/").status_code, status.HTTP_403_FORBIDDEN)
+
+        # An operator (is_staff): allowed.
+        operator = User.objects.create_user(
+            username="operador1", password="SenhaForte123", is_staff=True
+        )
+        self.client.force_authenticate(user=operator)
         response = self.client.get("/api/alerts/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
-    def test_operator_action_updates_status(self):
+    def test_operator_action_requires_operator(self):
         self.client.force_authenticate(user=self.user)
         created = self.client.post("/api/alerts/", self._payload(), format="json")
         alert_id = created.data["id"]
-        self.client.force_authenticate(user=None)
 
+        # A regular driver cannot act on an alert.
+        denied = self.client.patch(
+            f"/api/alerts/{alert_id}/",
+            {"operator_action": "acionar_policia"},
+            format="json",
+        )
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+        operator = User.objects.create_user(
+            username="operador2", password="SenhaForte123", is_staff=True
+        )
+        self.client.force_authenticate(user=operator)
         response = self.client.patch(
             f"/api/alerts/{alert_id}/",
             {"operator_action": "acionar_policia"},
@@ -137,3 +161,39 @@ class PanicAlertTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["operatorAction"], "acionar_policia")
         self.assertEqual(response.data["status"], "em_atendimento")
+
+
+class SessionSecurityTests(APITestCase):
+    def test_me_reports_operator_flag(self):
+        driver = User.objects.create_user(username="driver_me", password="SenhaForte123")
+        operator = User.objects.create_user(
+            username="op_me", password="SenhaForte123", is_staff=True
+        )
+        self.client.force_authenticate(user=driver)
+        self.assertFalse(self.client.get("/api/auth/me/").data["is_operator"])
+        self.client.force_authenticate(user=operator)
+        self.assertTrue(self.client.get("/api/auth/me/").data["is_operator"])
+
+    def test_logout_blacklists_refresh_token(self):
+        User.objects.create_user(username="sai", password="SenhaForte123")
+        login = self.client.post(
+            "/api/auth/login/",
+            {"username": "sai", "password": "SenhaForte123"},
+            format="json",
+        )
+        refresh = login.data["refresh"]
+        access = login.data["access"]
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        logout = self.client.post("/api/auth/logout/", {"refresh": refresh}, format="json")
+        self.assertEqual(logout.status_code, 205)
+
+        # The blacklisted refresh token can no longer mint a new access token.
+        self.client.credentials()
+        again = self.client.post("/api/auth/refresh/", {"refresh": refresh}, format="json")
+        self.assertEqual(again.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_health_is_open(self):
+        response = self.client.get("/api/health/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "ok")

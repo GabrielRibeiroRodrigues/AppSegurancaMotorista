@@ -1,8 +1,12 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     DriverProfileView,
+    HealthView,
+    LoginView,
+    LogoutView,
+    MeView,
     PanicAlertDetailView,
     PanicAlertListCreateView,
     RegisterView,
@@ -10,10 +14,15 @@ from .views import (
 )
 
 urlpatterns = [
+    # Health
+    path("api/health/", HealthView.as_view(), name="health"),
+
     # Auth (Module 3 — JWT)
     path("api/auth/register/", RegisterView.as_view(), name="auth-register"),
-    path("api/auth/login/", TokenObtainPairView.as_view(), name="auth-login"),
+    path("api/auth/login/", LoginView.as_view(), name="auth-login"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
+    path("api/auth/logout/", LogoutView.as_view(), name="auth-logout"),
+    path("api/auth/me/", MeView.as_view(), name="auth-me"),
 
     # Data
     path("api/rides/", RideListCreateView.as_view(), name="ride-list-create"),
