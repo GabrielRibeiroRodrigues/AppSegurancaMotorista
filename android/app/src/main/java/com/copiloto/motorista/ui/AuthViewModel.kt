@@ -14,11 +14,20 @@ import retrofit2.HttpException
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val authRepository = (application as CopilotoApp).container.authRepository
+    private val container = (application as CopilotoApp).container
+    private val authRepository = container.authRepository
 
     /** null while the stored state is loading, then true/false. */
     val isLoggedIn: StateFlow<Boolean?> = authRepository.isLoggedIn
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** LGPD consent gate: null while loading, then whether the driver accepted. */
+    val consentAccepted: StateFlow<Boolean?> = container.consentStore.accepted
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun acceptConsent() {
+        viewModelScope.launch { container.consentStore.accept() }
+    }
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()

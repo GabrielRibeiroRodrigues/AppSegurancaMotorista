@@ -35,6 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.copiloto.motorista.ui.screens.AuthScreen
+import com.copiloto.motorista.ui.screens.ConsentScreen
 import com.copiloto.motorista.ui.screens.HistoryScreen
 import com.copiloto.motorista.ui.screens.HomeScreen
 import com.copiloto.motorista.ui.screens.OnboardingScreen
@@ -58,6 +59,22 @@ class MainActivity : ComponentActivity() {
 private fun CopilotoRoot() {
     val authViewModel: AuthViewModel = viewModel()
     val loggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val consent by authViewModel.consentAccepted.collectAsStateWithLifecycle()
+
+    // LGPD: nothing runs before the driver accepts the data-use terms.
+    when (consent) {
+        null -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+            return
+        }
+        false -> {
+            ConsentScreen(onAccept = { authViewModel.acceptConsent() })
+            return
+        }
+        else -> Unit
+    }
 
     when (loggedIn) {
         null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

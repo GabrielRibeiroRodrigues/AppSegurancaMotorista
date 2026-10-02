@@ -7,6 +7,7 @@ import com.copiloto.motorista.data.remote.NetworkModule
 import com.copiloto.motorista.data.repository.AuthRepository
 import com.copiloto.motorista.data.repository.PanicRepository
 import com.copiloto.motorista.data.repository.RideHistoryRepository
+import com.copiloto.motorista.data.settings.ConsentStore
 import com.copiloto.motorista.data.settings.DriverProfileRepository
 import com.copiloto.motorista.data.settings.MonitoredAppsStore
 import com.copiloto.motorista.data.settings.OnboardingStore
@@ -34,6 +35,8 @@ class CopilotoContainer(context: Context) {
     }
 
     val onboardingStore: OnboardingStore by lazy { OnboardingStore(appContext) }
+
+    val consentStore: ConsentStore by lazy { ConsentStore(appContext) }
 
     val riskZoneRepository: RiskZoneRepository by lazy { RiskZoneRepository(appContext) }
 
