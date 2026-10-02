@@ -88,3 +88,52 @@ class RideApiTests(APITestCase):
             "accepted": True,
             "captured_at": "2026-09-30T12:00:00Z",
         }
+
+
+class PanicAlertTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="motorista_alerta", password="SenhaForte123")
+
+    def _payload(self, is_test=False):
+        return {
+            "timestamp": "2026-10-02T12:00:00Z",
+            "lat": -21.37,
+            "lng": -46.52,
+            "transcript": "ativar protecao agora",
+            "is_test": is_test,
+        }
+
+    def test_fire_alert_requires_authentication(self):
+        response = self.client.post("/api/alerts/", self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_fire_alert_creates_active_alert(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post("/api/alerts/", self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "ativo")
+        self.assertEqual(response.data["driverId"], "motorista_alerta")
+        self.assertEqual(response.data["location"], {"lat": -21.37, "lng": -46.52})
+
+    def test_list_alerts_is_open_for_operators(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post("/api/alerts/", self._payload(), format="json")
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/alerts/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_operator_action_updates_status(self):
+        self.client.force_authenticate(user=self.user)
+        created = self.client.post("/api/alerts/", self._payload(), format="json")
+        alert_id = created.data["id"]
+        self.client.force_authenticate(user=None)
+
+        response = self.client.patch(
+            f"/api/alerts/{alert_id}/",
+            {"operator_action": "acionar_policia"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["operatorAction"], "acionar_policia")
+        self.assertEqual(response.data["status"], "em_atendimento")

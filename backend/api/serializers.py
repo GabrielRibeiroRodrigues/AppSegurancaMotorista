@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import DriverProfile, RideHistory
+from .models import DriverProfile, PanicAlert, RideHistory
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -59,3 +59,50 @@ class RideHistorySerializer(serializers.ModelSerializer):
             "captured_at",
         ]
         read_only_fields = ["id"]
+
+
+class PanicAlertSerializer(serializers.ModelSerializer):
+    """Read shape consumed by the Central de Operações (camelCase + nested location)."""
+
+    driverId = serializers.CharField(source="driver.user.username", read_only=True)
+    receivedAt = serializers.DateTimeField(source="received_at", read_only=True)
+    operatorAction = serializers.CharField(source="operator_action", read_only=True)
+    isTest = serializers.BooleanField(source="is_test", read_only=True)
+    location = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PanicAlert
+        fields = [
+            "id",
+            "driverId",
+            "timestamp",
+            "receivedAt",
+            "location",
+            "transcript",
+            "status",
+            "operatorAction",
+            "isTest",
+        ]
+
+    def get_location(self, obj):
+        return {"lat": obj.lat, "lng": obj.lng}
+
+
+class PanicAlertCreateSerializer(serializers.Serializer):
+    """Write shape sent by the driver app when an alert fires."""
+
+    timestamp = serializers.DateTimeField()
+    lat = serializers.FloatField()
+    lng = serializers.FloatField()
+    transcript = serializers.CharField(allow_blank=True, default="")
+    is_test = serializers.BooleanField(default=False)
+
+
+class PanicAlertUpdateSerializer(serializers.Serializer):
+    """Operator action from the Central de Operações."""
+
+    operator_action = serializers.ChoiceField(choices=PanicAlert.OperatorAction.choices)
+    status = serializers.ChoiceField(
+        choices=PanicAlert.Status.choices,
+        required=False,
+    )

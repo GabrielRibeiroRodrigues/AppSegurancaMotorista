@@ -70,3 +70,46 @@ class RideHistory(models.Model):
 
     def __str__(self) -> str:
         return f"{self.source} R${self.gross_price} ({self.classification})"
+
+
+class PanicAlert(models.Model):
+    """Emergency alert raised by a driver (DesafioMaker — Botão de Pânico).
+
+    Fired by a hidden trigger or a trigger phrase; carries location and the
+    captured transcript, and is handled by an operator in the Central de Operações.
+    """
+
+    class Status(models.TextChoices):
+        ATIVO = "ativo", "Ativo"
+        EM_ATENDIMENTO = "em_atendimento", "Em atendimento"
+        ENCERRADO = "encerrado", "Encerrado"
+
+    class OperatorAction(models.TextChoices):
+        ACIONAR_POLICIA = "acionar_policia", "Acionar polícia"
+        CONTATO_ATIVO = "contato_ativo", "Contato ativo"
+        FALSO_POSITIVO = "falso_positivo", "Falso positivo"
+
+    driver = models.ForeignKey(
+        DriverProfile,
+        on_delete=models.CASCADE,
+        related_name="alerts",
+    )
+    timestamp = models.DateTimeField(help_text="Quando o motorista disparou o alerta.")
+    received_at = models.DateTimeField(auto_now_add=True)
+    lat = models.FloatField()
+    lng = models.FloatField()
+    transcript = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ATIVO)
+    operator_action = models.CharField(
+        max_length=16,
+        choices=OperatorAction.choices,
+        null=True,
+        blank=True,
+    )
+    is_test = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-received_at"]
+
+    def __str__(self) -> str:
+        return f"Alerta {self.pk} ({self.status}) — {self.driver.user.username}"

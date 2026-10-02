@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import DriverProfile, RideHistory
+from .models import DriverProfile, PanicAlert, RideHistory
 
 
 class RideHistoryInline(admin.TabularInline):
@@ -90,3 +90,35 @@ class RideHistoryAdmin(admin.ModelAdmin):
         return format_html(
             '<b style="color:{}">{}</b>', color, obj.get_classification_display()
         )
+
+
+@admin.register(PanicAlert)
+class PanicAlertAdmin(admin.ModelAdmin):
+    list_display = (
+        "received_at",
+        "driver_username",
+        "status_badge",
+        "operator_action",
+        "is_test",
+        "transcript_short",
+    )
+    list_filter = ("status", "operator_action", "is_test", "received_at")
+    search_fields = ("driver__user__username", "transcript")
+    date_hierarchy = "received_at"
+    ordering = ("-received_at",)
+    list_select_related = ("driver", "driver__user")
+    readonly_fields = ("received_at",)
+
+    @admin.display(description="Motorista", ordering="driver__user__username")
+    def driver_username(self, obj):
+        return obj.driver.user.username
+
+    @admin.display(description="Transcrição")
+    def transcript_short(self, obj):
+        return (obj.transcript or "")[:60]
+
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        colors = {"ativo": "#DC2626", "em_atendimento": "#D97706", "encerrado": "#16A34A"}
+        color = colors.get(obj.status, "#6B7280")
+        return format_html('<b style="color:{}">{}</b>', color, obj.get_status_display())

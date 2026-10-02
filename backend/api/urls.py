@@ -1,7 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .views import DriverProfileView, RegisterView, RideListCreateView
+from .views import (
+    DriverProfileView,
+    PanicAlertDetailView,
+    PanicAlertListCreateView,
+    RegisterView,
+    RideListCreateView,
+)
 
 urlpatterns = [
     # Auth (Module 3 — JWT)
@@ -12,4 +18,8 @@ urlpatterns = [
     # Data
     path("api/rides/", RideListCreateView.as_view(), name="ride-list-create"),
     path("api/profile/", DriverProfileView.as_view(), name="driver-profile"),
+
+    # Panic alerts (DesafioMaker — Central de Operações)
+    path("api/alerts/", PanicAlertListCreateView.as_view(), name="alert-list-create"),
+    path("api/alerts/<int:pk>/", PanicAlertDetailView.as_view(), name="alert-detail"),
 ]

@@ -1,12 +1,15 @@
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import DriverProfile, RideHistory
+from .models import DriverProfile, PanicAlert, RideHistory
 from .serializers import (
     DriverProfileSerializer,
+    PanicAlertCreateSerializer,
+    PanicAlertSerializer,
+    PanicAlertUpdateSerializer,
     RegisterSerializer,
     RideHistorySerializer,
 )
@@ -59,3 +62,52 @@ class DriverProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class PanicAlertListCreateView(APIView):
+    """GET lists alerts for the Central de Operações; POST fires an alert (driver)."""
+
+    def get_permissions(self):
+        # Operators list without a driver login; a driver must be authenticated to fire.
+        # PRODUÇÃO: proteger o GET/PATCH com login/âmbito de operador.
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def get(self, request):
+        alerts = PanicAlert.objects.select_related("driver__user").all()
+        return Response(PanicAlertSerializer(alerts, many=True).data)
+
+    def post(self, request):
+        serializer = PanicAlertCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        driver, _ = DriverProfile.objects.get_or_create(user=request.user)
+        alert = PanicAlert.objects.create(driver=driver, **serializer.validated_data)
+        return Response(PanicAlertSerializer(alert).data, status=201)
+
+
+class PanicAlertDetailView(APIView):
+    """Operator action on an alert (Central de Operações)."""
+
+    permission_classes = [AllowAny]  # PRODUÇÃO: autenticação de operador.
+
+    def patch(self, request, pk):
+        try:
+            alert = PanicAlert.objects.select_related("driver__user").get(pk=pk)
+        except PanicAlert.DoesNotExist:
+            return Response({"detail": "alerta não encontrado"}, status=404)
+
+        serializer = PanicAlertUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        action = serializer.validated_data["operator_action"]
+        alert.operator_action = action
+
+        new_status = serializer.validated_data.get("status")
+        if new_status:
+            alert.status = new_status
+        elif action == PanicAlert.OperatorAction.FALSO_POSITIVO:
+            alert.status = PanicAlert.Status.ENCERRADO
+        else:
+            alert.status = PanicAlert.Status.EM_ATENDIMENTO
+        alert.save()
+        return Response(PanicAlertSerializer(alert).data)
