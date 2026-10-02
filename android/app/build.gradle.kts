@@ -18,10 +18,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Base URL of the Django backend. Override per build variant / local.properties as needed.
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
-        // WebRTC signaling server for the live video (separate service, port 4001).
-        buildConfigField("String", "SIGNALING_URL", "\"ws://10.0.2.2:4001/signaling\"")
+        // Backend + signaling URLs. Default to the emulator host; override for a
+        // device/VPS build with, e.g.:
+        //   ./gradlew assembleDebug -PapiBaseUrl=http://191.252.100.161:8000/ \
+        //                           -PsignalingUrl=ws://191.252.100.161:4001/signaling
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8000/"
+        val signalingUrl = (project.findProperty("signalingUrl") as String?) ?: "ws://10.0.2.2:4001/signaling"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "SIGNALING_URL", "\"$signalingUrl\"")
     }
 
     buildTypes {
