@@ -1,0 +1,72 @@
+# Camada de produção "endurecida": HTTPS (Caddy), TURN (coturn) e backup do Postgres.
+# Uso (junto do compose principal):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.tls.yml up -d --build
+#
+# Requisitos no .env (além dos de produção):
+#   CADDY_DOMAIN=copiloto.seudominio.com   # domínio apontando para a VPS
+#   SECURE_SSL=True                        # Django assume que está atrás de TLS
+#   PUBLIC_IP=191.252.100.161              # IP público da VPS (para o TURN)
+#   TURN_PASSWORD=...                      # senha do TURN
+# Com o Caddy na frente, feche 8000/4001 no firewall e sirva tudo por 443.
+services:
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - web
+      - signaling
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?defina CADDY_DOMAIN no .env}
+    restart: unless-stopped
+
+  # TURN relay: faz o vídeo ao vivo conectar mesmo em 4G/NAT simétrico.
+  coturn:
+    image: coturn/coturn:4.6
+    network_mode: host
+    command: >
+      -n --no-cli
+      --listening-port=3478
+      --realm=copiloto
+      --fingerprint
+      --lt-cred-mech
+      --user=${TURN_USERNAME:-copiloto}:${TURN_PASSWORD:?defina TURN_PASSWORD no .env}
+      --min-port=49160 --max-port=49200
+      --external-ip=${PUBLIC_IP:?defina PUBLIC_IP no .env}
+    restart: unless-stopped
+
+  # Backup diário do Postgres (mantém os últimos 7 dumps em um volume).
+  backup:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-copiloto}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-copiloto}
+    volumes:
+      - pg_backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        while true; do
+          ts=$$(date +%Y%m%d-%H%M%S)
+          pg_dump | gzip > /backups/copiloto-$$ts.sql.gz && echo "[backup] ok $$ts"
+          ls -1t /backups/copiloto-*.sql.gz | tail -n +8 | xargs -r rm -f
+          sleep 86400
+        done
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pg_backups:

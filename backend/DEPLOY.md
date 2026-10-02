@@ -61,5 +61,53 @@ com esse IP.
 ## Segurança mínima (recomendado)
 - O Postgres **não** está exposto à internet (sem porta publicada) — mantenha assim.
 - Troque `POSTGRES_PASSWORD` e `DJANGO_SECRET_KEY` por valores fortes.
-- Quando quiser levar a sério, coloque um domínio + HTTPS (Caddy/Nginx + Let's Encrypt) e
-  troque o app para `https://`.
+
+## Produção endurecida (HTTPS + TURN + backup)
+
+O fluxo `IP:8000` por HTTP acima serve para **testes**. Para usuários reais, use a
+camada `docker-compose.tls.yml`, que adiciona:
+
+- **Caddy** — proxy reverso com **HTTPS automático** (Let's Encrypt). Exige um
+  **domínio** apontando para a VPS (certificado não é emitido para IP puro) e as
+  portas **80/443** abertas no firewall.
+- **coturn** — servidor **TURN**, para o vídeo ao vivo conectar mesmo em 4G/NAT simétrico.
+- **backup** — `pg_dump` diário do Postgres (mantém os últimos 7).
+
+### 1. Operadores da Central
+A lista de alertas e as ações agora são **restritas a operadores** (conta `is_staff`).
+Crie um operador (ou promova um usuário no admin):
+```bash
+docker compose -p copiloto -f docker-compose.prod.yml exec web \
+  python manage.py createsuperuser   # superuser já é is_staff (operador)
+```
+O dashboard web (Central) agora pede login dessa conta.
+
+### 2. `.env` adicional
+```bash
+CADDY_DOMAIN=copiloto.seudominio.com   # domínio -> IP da VPS
+SECURE_SSL=True                        # cookies seguros + HSTS (Django atrás do TLS)
+CORS_ALLOWED_ORIGINS=https://copiloto.seudominio.com   # origem do dashboard
+PUBLIC_IP=191.252.100.161              # IP público (para o TURN anunciar o relay)
+TURN_USERNAME=copiloto
+TURN_PASSWORD=uma-senha-forte-do-turn
+```
+
+### 3. Subir com a camada de TLS
+```bash
+docker compose -p copiloto \
+  -f docker-compose.prod.yml -f docker-compose.tls.yml up -d --build
+```
+Depois **feche** 8000/4001 no firewall (tudo passa pelo 443) e abra 80/443 +
+`3478/tcp,udp` e `49160-49200/udp` (TURN).
+
+### 4. Rebuild do APK para HTTPS/WSS + TURN
+```bash
+cd android
+./gradlew assembleDebug \
+  -PapiBaseUrl=https://copiloto.seudominio.com/ \
+  -PsignalingUrl=wss://copiloto.seudominio.com/signaling \
+  -PturnUrl=turn:191.252.100.161:3478 \
+  -PturnUsername=copiloto -PturnCredential=uma-senha-forte-do-turn
+```
+Com HTTPS, dá para **remover** o `usesCleartextTraffic="true"` do `AndroidManifest.xml`.
+O dashboard usa as mesmas infos via `VITE_SERVER_URL`, `VITE_TURN_*` (veja `dashboard/.env.example`).

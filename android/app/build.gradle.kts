@@ -26,6 +26,15 @@ android {
         val signalingUrl = (project.findProperty("signalingUrl") as String?) ?: "ws://10.0.2.2:4001/signaling"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "SIGNALING_URL", "\"$signalingUrl\"")
+
+        // TURN relay for the live video (empty = STUN only). Override for the VPS:
+        //   -PturnUrl=turn:191.252.100.161:3478 -PturnUsername=copiloto -PturnCredential=...
+        val turnUrl = (project.findProperty("turnUrl") as String?) ?: ""
+        val turnUsername = (project.findProperty("turnUsername") as String?) ?: ""
+        val turnCredential = (project.findProperty("turnCredential") as String?) ?: ""
+        buildConfigField("String", "TURN_URL", "\"$turnUrl\"")
+        buildConfigField("String", "TURN_USERNAME", "\"$turnUsername\"")
+        buildConfigField("String", "TURN_CREDENTIAL", "\"$turnCredential\"")
     }
 
     buildTypes {

@@ -1,6 +1,7 @@
 package com.copiloto.motorista.service.webrtc
 
 import android.content.Context
+import com.copiloto.motorista.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -239,10 +240,21 @@ class WebRtcBroadcaster(
     }
 
     private companion object {
-        val ICE_SERVERS = listOf(
-            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-        )
+        // STUN discovers the public IP; TURN relays the media when direct P2P fails
+        // (common on mobile/symmetric NAT). TURN is added only when configured via
+        // the TURN_* BuildConfig fields (see build.gradle.kts / Gradle properties).
+        val ICE_SERVERS: List<PeerConnection.IceServer> = buildList {
+            add(PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer())
+            add(PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer())
+            if (BuildConfig.TURN_URL.isNotEmpty()) {
+                add(
+                    PeerConnection.IceServer.builder(BuildConfig.TURN_URL)
+                        .setUsername(BuildConfig.TURN_USERNAME)
+                        .setPassword(BuildConfig.TURN_CREDENTIAL)
+                        .createIceServer(),
+                )
+            }
+        }
     }
 }
 

@@ -1,0 +1,16 @@
+# Proxy reverso com HTTPS automático (Let's Encrypt).
+# Requer um domínio apontando para a VPS e as portas 80/443 abertas.
+# CADDY_DOMAIN é definido no .env (ex.: copiloto.seudominio.com).
+{$CADDY_DOMAIN} {
+	encode gzip
+
+	# Sinalização WebRTC (WebSocket) — Caddy repassa o upgrade automaticamente.
+	handle /signaling* {
+		reverse_proxy signaling:4001
+	}
+
+	# API Django + admin + arquivos estáticos.
+	handle {
+		reverse_proxy web:8000
+	}
+}
