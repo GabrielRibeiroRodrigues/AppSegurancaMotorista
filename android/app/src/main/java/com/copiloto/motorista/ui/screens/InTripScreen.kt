@@ -1,6 +1,9 @@
 package com.copiloto.motorista.ui.screens
 
 import android.graphics.Color as AndroidColor
+import android.graphics.Paint
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,10 +51,12 @@ import com.copiloto.motorista.ui.UiFormat
 import com.copiloto.motorista.ui.demo.MuzambinhoRoute
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.MapTileIndex
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.CopyrightOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
@@ -189,7 +194,22 @@ private fun TripMap(modifier: Modifier) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapView = remember {
         MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            // Clean, low-clutter basemap: Esri World Light Gray Base — a light grey
+            // canvas with essentially no labels/POIs. Keyless. Note the z/y/x URL order.
+            setTileSource(
+                object : OnlineTileSourceBase(
+                    "EsriLightGray", 0, 16, 256, "",
+                    arrayOf(
+                        "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/",
+                    ),
+                    "Esri, © OpenStreetMap contributors",
+                ) {
+                    override fun getTileURLString(pMapTileIndex: Long): String =
+                        baseUrl + MapTileIndex.getZoom(pMapTileIndex) + "/" +
+                            MapTileIndex.getY(pMapTileIndex) + "/" +
+                            MapTileIndex.getX(pMapTileIndex)
+                },
+            )
             setMultiTouchControls(true)
             setUseDataConnection(true)
         }
@@ -213,6 +233,8 @@ private fun TripMap(modifier: Modifier) {
 
     AndroidView(modifier = modifier, factory = { mapView })
 
+    val density = context.resources.displayMetrics.density
+
     // Build overlays once, then animate the car along the route.
     LaunchedEffect(Unit) {
         val points = MuzambinhoRoute.POINTS.map { GeoPoint(it.first, it.second) }
@@ -220,28 +242,30 @@ private fun TripMap(modifier: Modifier) {
         val route = Polyline(mapView).apply {
             setPoints(points)
             outlinePaint.color = AndroidColor.parseColor("#1E7E51")
-            outlinePaint.strokeWidth = 14f
+            outlinePaint.strokeWidth = 7f * density
+            outlinePaint.strokeCap = Paint.Cap.ROUND
+            outlinePaint.strokeJoin = Paint.Join.ROUND
+            outlinePaint.isAntiAlias = true
         }
         mapView.overlays.add(route)
+        mapView.overlays.add(CopyrightOverlay(context)) // small, required attribution
 
-        fun pin(p: GeoPoint, title: String) = Marker(mapView).apply {
+        fun dotMarker(p: GeoPoint, fill: Int, sizeDp: Int) = Marker(mapView).apply {
             position = p
-            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            this.title = title
-        }
-        mapView.overlays.add(pin(points.first(), MuzambinhoRoute.ORIGIN_LABEL))
-        mapView.overlays.add(pin(points.last(), MuzambinhoRoute.DESTINATION_LABEL))
-
-        val car = Marker(mapView).apply {
-            position = points.first()
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            title = "Motorista"
+            icon = circleDot(fill, sizeDp, density)
+            setInfoWindow(null) // no label bubbles — keep it clean
+            isDraggable = false
         }
+        // Origin = soft dark dot; destination = brand green; car = green "puck".
+        mapView.overlays.add(dotMarker(points.first(), AndroidColor.parseColor("#334155"), 14))
+        mapView.overlays.add(dotMarker(points.last(), AndroidColor.parseColor("#1E7E51"), 16))
+        val car = dotMarker(points.first(), AndroidColor.parseColor("#16A34A"), 20)
         mapView.overlays.add(car)
 
-        // Frame the whole route with a little padding.
+        // Frame the route tightly so distant labels stay off-screen.
         val bbox = BoundingBox.fromGeoPointsSafe(points)
-        mapView.post { mapView.zoomToBoundingBox(bbox.increaseByScale(1.6f), false, 80) }
+        mapView.post { mapView.zoomToBoundingBox(bbox.increaseByScale(1.35f), false, 90) }
 
         val path = densify(points, stepsPerSegment = 18)
         while (isActive) {
@@ -253,6 +277,18 @@ private fun TripMap(modifier: Modifier) {
             delay(1500) // pause at destination, then loop the demo
             car.position = points.first()
         }
+    }
+}
+
+/** A small filled circle with a white ring, for clean map markers (origin/car/etc.). */
+private fun circleDot(fill: Int, sizeDp: Int, density: Float): Drawable {
+    val size = (sizeDp * density).toInt()
+    return GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        setColor(fill)
+        setStroke((2.5f * density).toInt(), AndroidColor.WHITE)
+        setSize(size, size)
+        setBounds(0, 0, size, size)
     }
 }
 
