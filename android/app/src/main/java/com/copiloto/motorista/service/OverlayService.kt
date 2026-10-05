@@ -131,7 +131,31 @@ class OverlayService : Service() {
                 }
             }
         }
+        // A simulated ride opens the in-trip demo screen (map + panic demonstration).
+        if (evaluation?.offer?.isDemo == true) openInTripDemo(evaluation)
         dismissOverlay()
+    }
+
+    /** Hands the accepted demo ride to the app and brings the in-trip screen forward. */
+    private fun openInTripDemo(evaluation: RideEvaluation) {
+        val offer = evaluation.offer
+        container.demoTripHolder.value = com.copiloto.motorista.data.model.DemoTrip(
+            sourceLabel = offer.displayLabel,
+            grossPrice = offer.grossPrice,
+            distanceKm = offer.distanceKm,
+            timeMinutes = offer.timeMinutes,
+            pickup = com.copiloto.motorista.ui.demo.MuzambinhoRoute.ORIGIN_LABEL,
+            dropoff = offer.dropoff?.takeIf { it.isNotBlank() }
+                ?: com.copiloto.motorista.ui.demo.MuzambinhoRoute.DESTINATION_LABEL,
+        )
+        runCatching {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    putExtra(MainActivity.EXTRA_OPEN_IN_TRIP, true)
+                },
+            )
+        }
     }
 
     private fun dismissOverlay() {
@@ -193,6 +217,7 @@ class OverlayService : Service() {
             dropoff = getStringExtra(EXTRA_DROPOFF),
             rawText = getStringExtra(EXTRA_RAW),
             sourceLabel = getStringExtra(EXTRA_SOURCE_LABEL),
+            isDemo = getBooleanExtra(EXTRA_DEMO, false),
         )
     }
 
@@ -217,6 +242,7 @@ class OverlayService : Service() {
 
         private const val EXTRA_SOURCE = "source"
         private const val EXTRA_SOURCE_LABEL = "source_label"
+        private const val EXTRA_DEMO = "demo"
         private const val EXTRA_PRICE = "price"
         private const val EXTRA_DISTANCE = "distance"
         private const val EXTRA_MINUTES = "minutes"
@@ -230,6 +256,7 @@ class OverlayService : Service() {
                 action = ACTION_SHOW_OFFER
                 putExtra(EXTRA_SOURCE, offer.source.name)
                 putExtra(EXTRA_SOURCE_LABEL, offer.sourceLabel)
+                putExtra(EXTRA_DEMO, offer.isDemo)
                 putExtra(EXTRA_PRICE, offer.grossPrice)
                 putExtra(EXTRA_DISTANCE, offer.distanceKm)
                 putExtra(EXTRA_MINUTES, offer.timeMinutes)

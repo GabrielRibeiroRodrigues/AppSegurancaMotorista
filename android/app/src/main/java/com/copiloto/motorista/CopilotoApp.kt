@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import androidx.work.Configuration
 import com.copiloto.motorista.di.CopilotoContainer
+import java.io.File
 import com.copiloto.motorista.service.DashcamService
 import com.copiloto.motorista.service.OverlayService
 import com.copiloto.motorista.service.PanicButtonService
@@ -19,6 +20,7 @@ class CopilotoApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         container = CopilotoContainer(this)
+        initOsmdroid()
         createOverlayNotificationChannel()
         createDashcamNotificationChannel()
         createProtectionNotificationChannel()
@@ -28,6 +30,16 @@ class CopilotoApp : Application(), Configuration.Provider {
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().build()
+
+    /** osmdroid (in-trip demo map): identify ourselves to the tile server and keep
+     *  the tile cache inside app storage so no storage permission is needed. */
+    private fun initOsmdroid() {
+        val config = org.osmdroid.config.Configuration.getInstance()
+        config.userAgentValue = packageName
+        val base = File(cacheDir, "osmdroid")
+        config.osmdroidBasePath = base
+        config.osmdroidTileCache = File(base, "tiles")
+    }
 
     private fun createOverlayNotificationChannel() {
         val manager = getSystemService(NotificationManager::class.java)

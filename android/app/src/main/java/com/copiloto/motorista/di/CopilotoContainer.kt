@@ -3,7 +3,10 @@ package com.copiloto.motorista.di
 import android.content.Context
 import com.copiloto.motorista.bluetooth.PanicButtonManager
 import com.copiloto.motorista.data.local.CopilotoDatabase
+import com.copiloto.motorista.data.model.DemoTrip
 import com.copiloto.motorista.data.remote.CopilotoApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.copiloto.motorista.data.remote.NetworkModule
 import com.copiloto.motorista.data.repository.AuthRepository
 import com.copiloto.motorista.data.repository.PanicRepository
@@ -51,8 +54,15 @@ class CopilotoContainer(context: Context) {
     /** Single BLE engine shared by the pairing UI and the PanicButtonService. */
     val panicButtonManager: PanicButtonManager by lazy { PanicButtonManager(appContext) }
 
+    /** App-wide signal fired on every panic alert (origin string), so the in-trip
+     *  demo screen can confirm a trigger from voice, button or the simulate buttons. */
+    val alertEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
+
+    /** Set when a simulated ride is accepted; the UI then opens the in-trip demo screen. */
+    val demoTripHolder = MutableStateFlow<DemoTrip?>(null)
+
     val panicRepository: PanicRepository by lazy {
-        PanicRepository(api, database.pendingAlertDao(), appContext)
+        PanicRepository(api, database.pendingAlertDao(), appContext, alertEvents)
     }
 
     val rideHistoryRepository: RideHistoryRepository by lazy {

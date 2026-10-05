@@ -7,6 +7,7 @@ import com.copiloto.motorista.data.remote.CopilotoApi
 import com.copiloto.motorista.data.remote.dto.CreateAlertRequest
 import com.copiloto.motorista.service.LocationHelper
 import com.copiloto.motorista.sync.AlertSyncScheduler
+import kotlinx.coroutines.flow.MutableSharedFlow
 import java.time.Instant
 
 /** How a panic alert was triggered (mirrors the backend `PanicAlert.Origin`). */
@@ -26,6 +27,7 @@ class PanicRepository(
     private val api: CopilotoApi,
     private val pendingAlertDao: PendingAlertDao,
     private val appContext: Context,
+    private val alertEvents: MutableSharedFlow<String>? = null,
 ) {
 
     /**
@@ -48,6 +50,7 @@ class PanicRepository(
             origin = origin,
             isTest = isTest,
         )
+        alertEvents?.tryEmit(origin)
         return try {
             api.createAlert(request).id
         } catch (e: Exception) {

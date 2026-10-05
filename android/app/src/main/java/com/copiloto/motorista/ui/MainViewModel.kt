@@ -6,18 +6,22 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.copiloto.motorista.CopilotoApp
 import com.copiloto.motorista.data.local.RideHistoryEntity
+import com.copiloto.motorista.data.model.DemoTrip
 import com.copiloto.motorista.data.model.DriverProfile
 import com.copiloto.motorista.data.model.MonitoredApp
 import com.copiloto.motorista.data.model.RideOffer
 import com.copiloto.motorista.data.model.RideSource
+import com.copiloto.motorista.data.repository.AlertOrigin
 import com.copiloto.motorista.data.repository.toDto
 import com.copiloto.motorista.service.OverlayService
 import com.copiloto.motorista.service.PanicService
 import com.copiloto.motorista.service.StreamingService
 import com.copiloto.motorista.sync.SyncScheduler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -123,7 +127,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 container.panicRepository.fireAlert(
                     "Alerta de teste",
                     isTest = true,
-                    origin = com.copiloto.motorista.data.repository.AlertOrigin.TESTE,
+                    origin = AlertOrigin.TESTE,
                 )
             }.getOrNull()
             if (alertId != null) StreamingService.start(getApplication(), alertId)
@@ -136,6 +140,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             container.driverProfileRepository.save(profile)
             // Mirror config to the backend opportunistically; ignore offline/auth failures.
             runCatching { container.api.updateProfile(profile.toDto()) }
+        }
+    }
+
+    // --- In-trip demo (map + panic demonstration) ---
+
+    /** Set when a simulated ride is accepted → the UI opens the in-trip demo screen. */
+    val demoTrip: StateFlow<DemoTrip?> = container.demoTripHolder.asStateFlow()
+
+    /** Fires once per alert (origin), so the in-trip screen can confirm any trigger. */
+    val alertEvents: SharedFlow<String> = container.alertEvents
+
+    fun clearDemoTrip() {
+        container.demoTripHolder.value = null
+    }
+
+    /** Backup trigger for the demo: fires a real alert as if from voice/button. */
+    fun firePanic(origin: String) {
+        viewModelScope.launch {
+            val alertId = runCatching {
+                container.panicRepository.fireAlert("Demonstração", isTest = false, origin = origin)
+            }.getOrNull()
+            if (alertId != null) StreamingService.start(getApplication(), alertId)
         }
     }
 
@@ -163,6 +189,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             dropoff = neighborhood,
             // Mimics the captured screen text so risk-zone keywords can match.
             rawText = "Destino: $neighborhood",
+            isDemo = true,
         )
     }
 

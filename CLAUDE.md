@@ -95,6 +95,11 @@ A hardware button behind the wheel, wired to an **ESP32**, lets the driver raise
 - Every alert now carries an **`origin`** (`APP`/`VOZ`/`BOTAO_PANICO`/`TESTE`) end-to-end (backend `PanicAlert.origin`, `CreateAlertRequest`, offline queue).
 - **Android limits (documented, by design):** background BLE only works while the FGS holds the connection; delivery can't be guaranteed if Bluetooth is off, the ESP32 is out of range, or an OEM battery-killer stops the service (hence the battery-optimization exemption). BLE is untestable on the emulator (no radio) — validate with real hardware per `esp32/README.md`.
 
+### In-trip demo screen (presentation flow)
+Accepting a **simulated** ride opens a full-screen in-trip screen for demos. `RideOffer.isDemo` (set by `MainViewModel.randomOffer`, carried through the overlay Intent as `EXTRA_DEMO`) marks simulator offers; real scraped offers stay `false`. On accept, `OverlayService.openInTripDemo` fills `CopilotoContainer.demoTripHolder` and foregrounds `MainActivity`, which navigates to the `in_trip` route (`InTripScreen`).
+- The map is **OpenStreetMap via osmdroid** (no API key; tiles cached in app storage, set up in `CopilotoApp.initOsmdroid`). The route is a fixed, **animated** path through Muzambinho (`ui/demo/MuzambinhoRoute.kt`) — a car marker steps along an interpolated polyline.
+- The screen demonstrates panic: the real **voice** and **ESP32 button** triggers stay live, plus on-screen **"Simular voz"/"Simular botão"** buttons (`MainViewModel.firePanic`). Any alert (real or simulated) emits on `CopilotoContainer.alertEvents` (fired by `PanicRepository.fireAlert`), which the screen shows as a red confirmation banner.
+
 ### How to log in (app)
 1. Suba o backend (`cd backend && docker compose up --build`).
 2. No app, ajuste `API_BASE_URL` em `android/app/build.gradle.kts` se não for emulador (o padrão `http://10.0.2.2:8000/` é o host local visto do emulador).

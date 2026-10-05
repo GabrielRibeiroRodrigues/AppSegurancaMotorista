@@ -21,6 +21,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,6 +39,7 @@ import com.copiloto.motorista.ui.screens.AuthScreen
 import com.copiloto.motorista.ui.screens.ConsentScreen
 import com.copiloto.motorista.ui.screens.HistoryScreen
 import com.copiloto.motorista.ui.screens.HomeScreen
+import com.copiloto.motorista.ui.screens.InTripScreen
 import com.copiloto.motorista.ui.screens.OnboardingScreen
 import com.copiloto.motorista.ui.screens.PanicButtonScreen
 import com.copiloto.motorista.ui.screens.SettingsScreen
@@ -53,6 +55,11 @@ class MainActivity : ComponentActivity() {
                 CopilotoRoot()
             }
         }
+    }
+
+    companion object {
+        /** Set by OverlayService when a simulated ride is accepted (in-trip demo). */
+        const val EXTRA_OPEN_IN_TRIP = "open_in_trip"
     }
 }
 
@@ -115,6 +122,12 @@ private fun MainScaffold(viewModel: MainViewModel, onLogout: () -> Unit) {
         scope.launch { snackbarHostState.showSnackbar(message) }
     }
 
+    // Accepting a simulated ride opens the in-trip demo screen (map + panic demo).
+    val demoTrip by viewModel.demoTrip.collectAsStateWithLifecycle()
+    LaunchedEffect(demoTrip != null) {
+        if (demoTrip != null) navController.navigate("in_trip") { launchSingleTop = true }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
@@ -160,6 +173,17 @@ private fun MainScaffold(viewModel: MainViewModel, onLogout: () -> Unit) {
                 PanicButtonScreen(
                     viewModel = viewModel(),
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable("in_trip") {
+                InTripScreen(
+                    viewModel = viewModel,
+                    onExit = {
+                        viewModel.clearDemoTrip()
+                        if (!navController.popBackStack()) {
+                            navController.navigate(Destination.HOME.route)
+                        }
+                    },
                 )
             }
         }

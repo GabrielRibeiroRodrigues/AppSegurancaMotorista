@@ -14,6 +14,9 @@ object UiFormat {
 
     fun money(value: Double): String = currency.format(value)
 
+    /** A number with one decimal place, pt-BR (e.g. 6,2). */
+    fun oneDecimal(value: Double): String = String.format(ptBr, "%.1f", value)
+
     fun dateTime(epochMillis: Long): String = dateFormat.format(Date(epochMillis))
 
     fun classificationColor(name: String): Color = when (name) {
