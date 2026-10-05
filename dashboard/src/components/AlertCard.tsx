@@ -95,6 +95,16 @@ export function AlertCard({ alert, onAction }: AlertCardProps) {
                     Teste
                   </span>
                 )}
+                {alert.origin === 'BOTAO_PANICO' && (
+                  <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
+                    Botão físico
+                  </span>
+                )}
+                {alert.origin === 'VOZ' && (
+                  <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                    Voz
+                  </span>
+                )}
               </h2>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
                 <ClockIcon className="h-3.5 w-3.5" />

@@ -86,6 +86,15 @@ On Android, `TokenStore` (DataStore) holds the access/refresh tokens. `AuthInter
 ### Live video & signaling auth
 `signaling/server.js` only does the WebRTC handshake (one room per `alertId`). Every WS connection must carry the driver/operator JWT as `?token=<access>` — the server verifies it (HS256, same `DJANGO_SECRET_KEY` via `SIGNALING_JWT_SECRET`) and **only operators may `watch`**. `StreamingService` appends the driver's token; the dashboard's `VideoFeed` appends the operator's. STUN is built in; a **TURN** relay (coturn) is added for production via the `TURN_*` config (`BuildConfig` on Android, `VITE_TURN_*` on the dashboard). TLS (Caddy), TURN and Postgres backup live in `backend/docker-compose.tls.yml` — see `backend/DEPLOY.md`.
 
+### Physical panic button (ESP32 over BLE)
+A hardware button behind the wheel, wired to an **ESP32**, lets the driver raise an alert without touching the phone: **button → ESP32 → BLE → app → alert**. The ESP32 is a BLE peripheral (firmware in `esp32/panic_button/`); the app is the central.
+- **`PanicButtonManager`** (`bluetooth/`) scans to pair, keeps a resilient connection (`autoConnect=true`), subscribes to the panic characteristic, and emits a **de-duplicated** press (a `uint32` sequence in the payload stops a reconnect from re-firing). The BLE contract (UUIDs, payload) lives in `PanicButtonBle.kt` and must match the firmware.
+- **`PanicButtonService`** is a `connectedDevice` foreground service that holds the connection in the background; on a press it calls `PanicRepository.fireAlert(origin=BOTAO_PANICO)` + starts the live video + haptic/tone feedback (30s cooldown). `BootReceiver` re-arms it after reboot. A `testMode` lets the pairing screen confirm a press without firing a real alert.
+- **Pairing/status UI:** `ui/screens/PanicButtonScreen.kt` (+ `PanicButtonViewModel`), reached from **Ajustes → Botão de pânico (ESP32)**. Paired device + armed flag persist in `PanicButtonStore`.
+- **Permissions:** `BLUETOOTH_SCAN` (`neverForLocation`) + `BLUETOOTH_CONNECT` (API 31+), legacy `BLUETOOTH`/`BLUETOOTH_ADMIN` + `ACCESS_FINE_LOCATION` (≤30), `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `RECEIVE_BOOT_COMPLETED`, `VIBRATE`.
+- Every alert now carries an **`origin`** (`APP`/`VOZ`/`BOTAO_PANICO`/`TESTE`) end-to-end (backend `PanicAlert.origin`, `CreateAlertRequest`, offline queue).
+- **Android limits (documented, by design):** background BLE only works while the FGS holds the connection; delivery can't be guaranteed if Bluetooth is off, the ESP32 is out of range, or an OEM battery-killer stops the service (hence the battery-optimization exemption). BLE is untestable on the emulator (no radio) — validate with real hardware per `esp32/README.md`.
+
 ### How to log in (app)
 1. Suba o backend (`cd backend && docker compose up --build`).
 2. No app, ajuste `API_BASE_URL` em `android/app/build.gradle.kts` se não for emulador (o padrão `http://10.0.2.2:8000/` é o host local visto do emulador).

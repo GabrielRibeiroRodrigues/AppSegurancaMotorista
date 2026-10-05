@@ -1,5 +1,7 @@
 export type AlertStatus = 'ativo' | 'em_atendimento' | 'encerrado';
 export type OperatorActionType = 'acionar_policia' | 'contato_ativo' | 'falso_positivo';
+/** Como o alerta foi disparado. */
+export type AlertOrigin = 'APP' | 'VOZ' | 'BOTAO_PANICO' | 'TESTE';
 
 export interface LatLng {
   lat: number;
@@ -15,6 +17,8 @@ export interface Alert {
   transcript: string;
   status: AlertStatus;
   operatorAction: OperatorActionType | null;
+  // Como o alerta foi disparado (voz, botão físico ESP32, etc.).
+  origin?: AlertOrigin;
   // Disparado pelo botão de teste (driver-pwa ou dashboard), não por uma
   // detecção de voz real nem por um alerta manual de verdade — a Central de
   // Operações precisa deixar isso visualmente claro pro operador nunca
