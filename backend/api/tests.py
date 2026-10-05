@@ -114,6 +114,15 @@ class PanicAlertTests(APITestCase):
         self.assertEqual(response.data["status"], "ativo")
         self.assertEqual(response.data["driverId"], "motorista_alerta")
         self.assertEqual(response.data["location"], {"lat": -21.37, "lng": -46.52})
+        # Defaults to APP when the origin is not sent.
+        self.assertEqual(response.data["origin"], "APP")
+
+    def test_fire_alert_records_physical_button_origin(self):
+        self.client.force_authenticate(user=self.user)
+        payload = {**self._payload(), "origin": "BOTAO_PANICO"}
+        response = self.client.post("/api/alerts/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["origin"], "BOTAO_PANICO")
 
     def test_list_alerts_requires_operator(self):
         self.client.force_authenticate(user=self.user)

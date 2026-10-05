@@ -8,6 +8,7 @@ data class CreateAlertRequest(
     @Json(name = "lat") val lat: Double,
     @Json(name = "lng") val lng: Double,
     @Json(name = "transcript") val transcript: String,
+    @Json(name = "origin") val origin: String,
     @Json(name = "is_test") val isTest: Boolean,
 )
 

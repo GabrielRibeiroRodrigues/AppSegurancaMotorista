@@ -96,6 +96,7 @@ class PanicAlertSerializer(serializers.ModelSerializer):
             "receivedAt",
             "location",
             "transcript",
+            "origin",
             "status",
             "operatorAction",
             "isTest",
@@ -112,6 +113,10 @@ class PanicAlertCreateSerializer(serializers.Serializer):
     lat = serializers.FloatField()
     lng = serializers.FloatField()
     transcript = serializers.CharField(allow_blank=True, default="")
+    origin = serializers.ChoiceField(
+        choices=PanicAlert.Origin.choices,
+        default=PanicAlert.Origin.APP,
+    )
     is_test = serializers.BooleanField(default=False)
 
 

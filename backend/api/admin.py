@@ -97,12 +97,13 @@ class PanicAlertAdmin(admin.ModelAdmin):
     list_display = (
         "received_at",
         "driver_username",
+        "origin",
         "status_badge",
         "operator_action",
         "is_test",
         "transcript_short",
     )
-    list_filter = ("status", "operator_action", "is_test", "received_at")
+    list_filter = ("status", "origin", "operator_action", "is_test", "received_at")
     search_fields = ("driver__user__username", "transcript")
     date_hierarchy = "received_at"
     ordering = ("-received_at",)

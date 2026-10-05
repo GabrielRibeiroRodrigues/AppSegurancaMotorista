@@ -133,7 +133,11 @@ class PanicService : Service() {
         lastFireAt = now
         scope.launch {
             val alertId = runCatching {
-                container.panicRepository.fireAlert(transcript, isTest = false)
+                container.panicRepository.fireAlert(
+                    transcript,
+                    isTest = false,
+                    origin = com.copiloto.motorista.data.repository.AlertOrigin.VOZ,
+                )
             }.getOrNull()
             // On a real alert, stream the camera live to the Central de Operações.
             if (alertId != null) StreamingService.start(this@PanicService, alertId)

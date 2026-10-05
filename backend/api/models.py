@@ -89,6 +89,12 @@ class PanicAlert(models.Model):
         CONTATO_ATIVO = "contato_ativo", "Contato ativo"
         FALSO_POSITIVO = "falso_positivo", "Falso positivo"
 
+    class Origin(models.TextChoices):
+        APP = "APP", "App (toque)"
+        VOZ = "VOZ", "Frase de voz"
+        BOTAO_PANICO = "BOTAO_PANICO", "Botão físico (ESP32)"
+        TESTE = "TESTE", "Teste"
+
     driver = models.ForeignKey(
         DriverProfile,
         on_delete=models.CASCADE,
@@ -99,6 +105,12 @@ class PanicAlert(models.Model):
     lat = models.FloatField()
     lng = models.FloatField()
     transcript = models.TextField(blank=True, default="")
+    origin = models.CharField(
+        max_length=16,
+        choices=Origin.choices,
+        default=Origin.APP,
+        help_text="Como o alerta foi disparado (voz, botão físico, etc.).",
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ATIVO)
     operator_action = models.CharField(
         max_length=16,

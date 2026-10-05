@@ -9,6 +9,14 @@ import com.copiloto.motorista.service.LocationHelper
 import com.copiloto.motorista.sync.AlertSyncScheduler
 import java.time.Instant
 
+/** How a panic alert was triggered (mirrors the backend `PanicAlert.Origin`). */
+object AlertOrigin {
+    const val APP = "APP"
+    const val VOZ = "VOZ"
+    const val BOTAO_PANICO = "BOTAO_PANICO"
+    const val TESTE = "TESTE"
+}
+
 /**
  * Fires panic alerts (DesafioMaker). Sends immediately; on failure the alert is
  * queued locally and retried by [com.copiloto.motorista.sync.AlertSyncWorker]
@@ -23,15 +31,21 @@ class PanicRepository(
     /**
      * Fires an alert from the current location. Returns the created alert id when
      * it was sent right away (so the caller can start the live video for that id),
-     * or null when it was queued offline.
+     * or null when it was queued offline. [origin] records how it was triggered
+     * (voice, physical button, …) — see [AlertOrigin].
      */
-    suspend fun fireAlert(transcript: String, isTest: Boolean): Long? {
+    suspend fun fireAlert(
+        transcript: String,
+        isTest: Boolean,
+        origin: String = AlertOrigin.APP,
+    ): Long? {
         val (lat, lng) = LocationHelper.lastKnown(appContext)
         val request = CreateAlertRequest(
             timestamp = Instant.now().toString(),
             lat = lat,
             lng = lng,
             transcript = transcript,
+            origin = origin,
             isTest = isTest,
         )
         return try {
@@ -44,6 +58,7 @@ class PanicRepository(
                     lng = lng,
                     transcript = transcript,
                     isTest = isTest,
+                    origin = origin,
                 ),
             )
             AlertSyncScheduler.schedule(appContext)
@@ -62,6 +77,7 @@ class PanicRepository(
                     lat = alert.lat,
                     lng = alert.lng,
                     transcript = alert.transcript,
+                    origin = alert.origin,
                     isTest = alert.isTest,
                 ),
             )

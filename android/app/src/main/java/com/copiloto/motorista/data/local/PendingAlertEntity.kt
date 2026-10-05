@@ -12,4 +12,6 @@ data class PendingAlertEntity(
     val lng: Double,
     val transcript: String,
     val isTest: Boolean,
+    /** How the alert was triggered: APP, VOZ, BOTAO_PANICO or TESTE. */
+    val origin: String = "APP",
 )

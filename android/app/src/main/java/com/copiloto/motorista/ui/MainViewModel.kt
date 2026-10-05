@@ -120,7 +120,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun sendTestAlert(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             val alertId = runCatching {
-                container.panicRepository.fireAlert("Alerta de teste", isTest = true)
+                container.panicRepository.fireAlert(
+                    "Alerta de teste",
+                    isTest = true,
+                    origin = com.copiloto.motorista.data.repository.AlertOrigin.TESTE,
+                )
             }.getOrNull()
             if (alertId != null) StreamingService.start(getApplication(), alertId)
             onResult(alertId != null)
