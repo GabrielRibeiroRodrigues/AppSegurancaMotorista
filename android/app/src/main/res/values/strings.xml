@@ -27,4 +27,15 @@
     <string name="protection_notification_title">Copiloto ativo</string>
     <string name="protection_notification_text">Modo proteção ligado.</string>
     <string name="streaming_notification_text">Transmitindo vídeo e áudio.</string>
+
+    <!-- Physical panic button (ESP32 over BLE). -->
+    <string name="panic_button_channel_name">Botão de pânico</string>
+    <string name="panic_button_channel_description">Mantém o botão físico (ESP32) conectado por Bluetooth.</string>
+    <string name="panic_button_notification_title">Botão de pânico</string>
+    <string name="panic_button_status_connected">Conectado e pronto.</string>
+    <string name="panic_button_status_connecting">Procurando o botão…</string>
+    <string name="panic_button_status_disconnected">Desconectado. Tentando reconectar…</string>
+    <string name="panic_button_status_bt_off">Bluetooth desligado.</string>
+    <string name="panic_button_status_no_perm">Permissão de Bluetooth necessária.</string>
+    <string name="panic_button_status_unsupported">Este aparelho não suporta Bluetooth LE.</string>
 </resources>

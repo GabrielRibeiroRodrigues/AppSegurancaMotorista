@@ -39,6 +39,7 @@ import com.copiloto.motorista.ui.screens.ConsentScreen
 import com.copiloto.motorista.ui.screens.HistoryScreen
 import com.copiloto.motorista.ui.screens.HomeScreen
 import com.copiloto.motorista.ui.screens.OnboardingScreen
+import com.copiloto.motorista.ui.screens.PanicButtonScreen
 import com.copiloto.motorista.ui.screens.SettingsScreen
 import com.copiloto.motorista.ui.theme.CopilotoTheme
 import kotlinx.coroutines.launch
@@ -148,7 +149,18 @@ private fun MainScaffold(viewModel: MainViewModel, onLogout: () -> Unit) {
             composable(Destination.HOME.route) { HomeScreen(viewModel, onMessage = onMessage) }
             composable(Destination.HISTORY.route) { HistoryScreen(viewModel) }
             composable(Destination.SETTINGS.route) {
-                SettingsScreen(viewModel, onLogout = onLogout, onMessage = onMessage)
+                SettingsScreen(
+                    viewModel,
+                    onLogout = onLogout,
+                    onMessage = onMessage,
+                    onOpenPanicButton = { navController.navigate("panic_button") },
+                )
+            }
+            composable("panic_button") {
+                PanicButtonScreen(
+                    viewModel = viewModel(),
+                    onBack = { navController.popBackStack() },
+                )
             }
         }
     }

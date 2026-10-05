@@ -1,6 +1,7 @@
 package com.copiloto.motorista.di
 
 import android.content.Context
+import com.copiloto.motorista.bluetooth.PanicButtonManager
 import com.copiloto.motorista.data.local.CopilotoDatabase
 import com.copiloto.motorista.data.remote.CopilotoApi
 import com.copiloto.motorista.data.remote.NetworkModule
@@ -11,6 +12,7 @@ import com.copiloto.motorista.data.settings.ConsentStore
 import com.copiloto.motorista.data.settings.DriverProfileRepository
 import com.copiloto.motorista.data.settings.MonitoredAppsStore
 import com.copiloto.motorista.data.settings.OnboardingStore
+import com.copiloto.motorista.data.settings.PanicButtonStore
 import com.copiloto.motorista.data.settings.PanicStore
 import com.copiloto.motorista.data.settings.RiskZoneRepository
 import com.copiloto.motorista.data.settings.TokenStore
@@ -43,6 +45,11 @@ class CopilotoContainer(context: Context) {
     val monitoredAppsStore: MonitoredAppsStore by lazy { MonitoredAppsStore(appContext) }
 
     val panicStore: PanicStore by lazy { PanicStore(appContext) }
+
+    val panicButtonStore: PanicButtonStore by lazy { PanicButtonStore(appContext) }
+
+    /** Single BLE engine shared by the pairing UI and the PanicButtonService. */
+    val panicButtonManager: PanicButtonManager by lazy { PanicButtonManager(appContext) }
 
     val panicRepository: PanicRepository by lazy {
         PanicRepository(api, database.pendingAlertDao(), appContext)

@@ -32,6 +32,22 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Physical panic button over BLE (ESP32). Android 12+ split Bluetooth perms;
+         neverForLocation avoids needing location just to scan for our device. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Legacy Bluetooth (API <= 30). -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <!-- Re-arm the button connection after the phone reboots. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Haptic confirmation when the physical button fires. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+
     <!-- Backend synchronization (Module F). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -105,6 +121,22 @@
             android:name=".service.StreamingService"
             android:exported="false"
             android:foregroundServiceType="camera|microphone" />
+
+        <!-- Physical panic button (ESP32): keeps the BLE connection alive in background. -->
+        <service
+            android:name=".service.PanicButtonService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <!-- Re-arms the panic button after a reboot / app update. -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Module F: WorkManager default initializer; configuration provided by CopilotoApp. -->
         <provider

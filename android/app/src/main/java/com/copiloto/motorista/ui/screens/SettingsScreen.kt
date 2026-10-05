@@ -55,6 +55,7 @@ fun SettingsScreen(
     viewModel: MainViewModel,
     onLogout: () -> Unit = {},
     onMessage: (String) -> Unit = {},
+    onOpenPanicButton: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val profile by viewModel.profile.collectAsStateWithLifecycle()
@@ -168,6 +169,17 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Salvar alterações")
+        }
+
+        Group("Botão de pânico (ESP32)") {
+            Text(
+                "Pareie o botão físico instalado no veículo para acionar um alerta sem pegar o celular.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onOpenPanicButton, modifier = Modifier.fillMaxWidth()) {
+                Text("Configurar botão de pânico")
+            }
         }
 
         Group("Proteção") {
