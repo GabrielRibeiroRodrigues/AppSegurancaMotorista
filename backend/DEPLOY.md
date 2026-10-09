@@ -62,6 +62,19 @@ com esse IP.
 - O Postgres **não** está exposto à internet (sem porta publicada) — mantenha assim.
 - Troque `POSTGRES_PASSWORD` e `DJANGO_SECRET_KEY` por valores fortes.
 
+## Central de Operações (painel web)
+
+A Central agora sobe **junto** no `docker compose up` como o serviço `dashboard`
+(nginx servindo o site e encaminhando `/api` e `/signaling` para os serviços
+internos — mesma origem, **sem CORS e sem chave**). Depois do deploy:
+
+- Acesse **`http://SEU_IP:8080/`** (troque a porta com `DASHBOARD_PORT` no `.env`).
+- Faça login com uma conta de **operador** (`is_staff`). Crie uma:
+  ```bash
+  docker compose -p copiloto -f docker-compose.prod.yml exec web python manage.py createsuperuser
+  ```
+- Abra `8080/tcp` no firewall (igual ao `8000`).
+
 ## Produção endurecida (HTTPS + TURN + backup)
 
 O fluxo `IP:8000` por HTTP acima serve para **testes**. Para usuários reais, use a
